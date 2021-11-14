@@ -1,0 +1,28 @@
+{
+  "name": "drizzle-box",
+  "version": "1.0.0",
+  "lockfileVersion": 2,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "drizzle-box",
+      "version": "1.0.0",
+      "license": "ISC",
+      "dependencies": {
+        "@openzeppelin/contracts": "^2.4.0"
+      }
+    },
+    "node_modules/@openzeppelin/contracts": {
+      "version": "2.5.1",
+      "resolved": "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-2.5.1.tgz",
+      "integrity": "sha512-qIy6tLx8rtybEsIOAlrM4J/85s2q2nPkDqj/Rx46VakBZ0LwtFhXIVub96LXHczQX0vaqmAueDqNPXtbSXSaYQ=="
+    }
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": {
+      "version": "2.5.1",
+      "resolved": "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-2.5.1.tgz",
+      "integrity": "sha512-qIy6tLx8rtybEsIOAlrM4J/85s2q2nPkDqj/Rx46VakBZ0LwtFhXIVub96LXHczQX0vaqmAueDqNPXtbSXSaYQ=="
+    }
+  }
+}
