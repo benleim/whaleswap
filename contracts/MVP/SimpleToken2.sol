@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
  * Note they can later distribute these tokens as they wish using `transfer` and other
  * `ERC20` functions.
  */
-contract SimpleToken is Context, ERC20, ERC20Detailed {
+contract SimpleToken2 is Context, ERC20, ERC20Detailed {
 
     /**
      * @dev Constructor that gives _msgSender() all of existing tokens.
