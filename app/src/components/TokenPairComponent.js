@@ -28,6 +28,13 @@ export default ({ drizzle, drizzleState }) => {
       </div>
 
       <div className="section">
+        <h3>Total Pairs:</h3>
+        <ContractData
+            drizzle={drizzle}
+            drizzleState={drizzleState}
+            contract="Factory"
+            method="allPairsLength"
+        />
 
         <h3>Add Pair</h3>
         <ContractForm
