@@ -81,6 +81,7 @@ contract PennswapPair is IPennswapPair, PennswapERC20 {
         blockTimestampLast = blockTimestamp;
     }
 
+    // Calculates mint fee
     function _mintFee(uint112 _reserve0, uint112 _reserve1) private returns (bool feeOn) {
         address feeTo = IPennswapFactory(factory).feeTo();
         feeOn = feeTo != address(0);

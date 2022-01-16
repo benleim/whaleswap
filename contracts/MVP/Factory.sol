@@ -1,11 +1,11 @@
 pragma solidity =0.5.16;
 
 import './interfaces/IPennswapFactory.sol';
-import './Pool.sol';
+import './PennswapPair.sol';
 
 contract Factory is IPennswapFactory {
     address public feeTo;
-    address public feeToSetter;
+    address public feeToSetter; 
 
     mapping(address => mapping(address => address)) public getPair;
     address[] public allPairs;

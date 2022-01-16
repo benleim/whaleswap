@@ -3,6 +3,7 @@ import { DrizzleContext } from "@drizzle/react-plugin";
 import { Drizzle } from "@drizzle/store";
 import drizzleOptions from "./drizzleOptions";
 import MyComponent from "./MyComponent";
+import TokenPairComponent from "./components/TokenPairComponent";
 import "./App.css";
 
 const drizzle = new Drizzle(drizzleOptions);
@@ -19,7 +20,7 @@ const App = () => {
           }
 
           return (
-            <MyComponent drizzle={drizzle} drizzleState={drizzleState} />
+            <TokenPairComponent drizzle={drizzle} drizzleState={drizzleState} />
           )
         }}
       </DrizzleContext.Consumer>
