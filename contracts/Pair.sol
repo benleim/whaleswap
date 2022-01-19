@@ -22,8 +22,20 @@ contract Pair is ERC20 {
         token1 = _token1;
     }
 
-    // --- Liquidity Token funcs ---
-    // mint()
+    // Utility function
+    function _update(uint balance0, uint balance1, uint112 _x, uint112 _y) private {
+        uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+        uint32 timeElapsed = blockTimestamp - lastBlockTimestamp;
+        if (timeElapsed > 0 && _x != 0 && _y != 0) {
+            price0Cumulative += // TODO
+            price1Cumulative += // TODO
+        }
+        x = uint112(balance0);
+        y = uint112(balance1);
+        lastBlockTimestamp = blockTimestamp;
+    }
+
+    // --- Liquidity functions ---
     function mint(address to) external returns (uint liquidity) {
         // update reserves
         uint balance0 = ERC20(token0).balanceOf(address(this));
@@ -37,10 +49,50 @@ contract Pair is ERC20 {
             liquidity = Math.min(amount0.mul(totalSupply) / x, amount1.mul(totalSupply) / y);
         }
         _mint(to, liquidity); // ERC-20 function
-        // TODO: update x & y
+        // TODO: call _update()
 
     }
+
     // burn()
+    function burn(address to) external returns (uint amount0, uint amount1) {
+        uint balance0 = ERC20(token0).balanceOf(address(this));
+        uint balance1 = ERC20(token1).balanceOf(address(this));
+        uint liquidity = balanceOf[address(this)];
+        
+        amount0 = liquidity.mul(balance0) / totalSupply;
+        amount1 = liquidity.mul(balance1) / totalSupply;
+
+        _burn(address(this), liquidity); // burn liquidity tokens
+
+        // Transfer tokens back to LP
+        ERC20(token0).transfer(to, amount0);
+        ERC20(token1).transfer(to, amount1);
+
+        // Update balances
+        balance0 = ERC20(token0).balanceOf(address(this));
+        balance1 = ERC20(token1).balanceOf(address(this));
+        // TODO: call _update()
+    }
 
     // swap()
+    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external {
+        uint balance0;
+        uint balance1;
+        if (amount0Out > 0) {
+            ERC20(token0).transfer(to, amount0Out);
+        }
+        if (amount1Out > 0) {
+            ERC20(token1).transfer(to, amount1Out);
+        }
+        balance0 = ERC20(token0).balanceOf(address(this));
+        balance1 = ERC20(token1).balanceOf(address(this));
+
+        uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+        uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+
+        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
+        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
+
+        // TODO: call _update()
+    }
 }
