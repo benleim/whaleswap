@@ -1,2 +1,2 @@
-# Pennswap
-A novel automated market-maker.
+# Whaleswap
+A time weighted average market maker (TWAMM) implementation.
