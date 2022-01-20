@@ -1,11 +1,15 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity >=0.4.21;
 
 import "@rari-capital/solmate/src/tokens/ERC20.sol";
 
 import "./libraries/Math.sol";
+import "./libraries/SafeMath.sol";
 import "./libraries/UQ112x112.sol";
 
 contract Pair is ERC20 {
+    using SafeMath  for uint;
+    using UQ112x112 for uint224;
+
     address public factory;
     address public token0;
     address public token1;
@@ -18,7 +22,7 @@ contract Pair is ERC20 {
     uint public price1Cumulative;
     uint32 public lastBlockTimestamp;
 
-    constructor(address _token0, address _token1) public {
+    constructor(address _token0, address _token1) ERC20("WhaleLiq", "lWHL", 18) {
         factory = msg.sender;
         token0 = _token0;
         token1 = _token1;
@@ -82,7 +86,7 @@ contract Pair is ERC20 {
     }
 
     // swap()
-    function swap(uint amount0Out, uint amount1Out, address to, bytes calldata data) external {
+    function swap(uint amount0Out, uint amount1Out, address to) external {
         uint balance0;
         uint balance1;
         if (amount0Out > 0) {
@@ -94,11 +98,12 @@ contract Pair is ERC20 {
         balance0 = ERC20(token0).balanceOf(address(this));
         balance1 = ERC20(token1).balanceOf(address(this));
 
-        uint amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
-        uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+        uint amount0In = balance0 > x - amount0Out ? balance0 - (x - amount0Out) : 0;
+        uint amount1In = balance1 > y - amount1Out ? balance1 - (y - amount1Out) : 0;
 
         uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
         uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
+        require(balance0Adjusted.mul(balance1Adjusted) >= uint(x).mul(y).mul(1000**2), 'UniswapV2: K');
 
         _update(balance0, balance1, x, y);
     }
