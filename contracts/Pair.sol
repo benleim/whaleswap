@@ -1,7 +1,9 @@
 pragma solidity >=0.4.21 <0.7.0;
 
 import "@rari-capital/solmate/src/tokens/ERC20.sol";
+
 import "./libraries/Math.sol";
+import "./libraries/UQ112x112.sol";
 
 contract Pair is ERC20 {
     address public factory;
@@ -24,12 +26,17 @@ contract Pair is ERC20 {
 
     // Utility function
     function _update(uint balance0, uint balance1, uint112 _x, uint112 _y) private {
+        // Block timestamp calculations
         uint32 blockTimestamp = uint32(block.timestamp % 2**32);
         uint32 timeElapsed = blockTimestamp - lastBlockTimestamp;
+
+        // Add to cumulative price
         if (timeElapsed > 0 && _x != 0 && _y != 0) {
-            price0Cumulative += // TODO
-            price1Cumulative += // TODO
+            price0Cumulative += uint(UQ112x112.encode(_y).uqdiv(_x)) * timeElapsed;
+            price1Cumulative += uint(UQ112x112.encode(_x).uqdiv(_y)) * timeElapsed;
         }
+
+        // Update contract state variables
         x = uint112(balance0);
         y = uint112(balance1);
         lastBlockTimestamp = blockTimestamp;
@@ -50,7 +57,6 @@ contract Pair is ERC20 {
         }
         _mint(to, liquidity); // ERC-20 function
         // TODO: call _update()
-
     }
 
     // burn()
