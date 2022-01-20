@@ -56,7 +56,7 @@ contract Pair is ERC20 {
             liquidity = Math.min(amount0.mul(totalSupply) / x, amount1.mul(totalSupply) / y);
         }
         _mint(to, liquidity); // ERC-20 function
-        // TODO: call _update()
+        _update(balance0, balance1, x, y);
     }
 
     // burn()
@@ -77,7 +77,8 @@ contract Pair is ERC20 {
         // Update balances
         balance0 = ERC20(token0).balanceOf(address(this));
         balance1 = ERC20(token1).balanceOf(address(this));
-        // TODO: call _update()
+
+        _update(balance0, balance1, x, y);
     }
 
     // swap()
@@ -99,6 +100,6 @@ contract Pair is ERC20 {
         uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
         uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
 
-        // TODO: call _update()
+        _update(balance0, balance1, x, y);
     }
 }
