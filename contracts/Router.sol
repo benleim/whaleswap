@@ -63,5 +63,18 @@ contract Router {
         liquidity = Pair(pair).mint(to);
     }
 
-
+    function burnLiquidity(
+        address token0,
+        address token1,
+        uint liq,
+        address to
+    ) public virtual returns (uint amount0, uint amount1) {
+        // Fetch pair address
+        address pair = Factory(factory).getPair(token0, token1);
+        // Transfer LP tokens
+        Pair(pair).transferFrom(msg.sender, pair, liq);
+        // Burn liquidity
+        (uint amount0Burn, uint amount1Burn) = Pair(pair).burn(to);
+        (amount0, amount1) = (amount0Burn, amount1Burn);
+    }
 }
