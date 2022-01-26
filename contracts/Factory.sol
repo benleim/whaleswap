@@ -9,7 +9,7 @@ contract Factory {
 
     function createPair(address token0, address token1) external returns (address pair) {
         // requirements
-        // TODO: Check not same token
+        require(token0 != token1, "Tokens cannot be the same.");
         // TODO: Check pair doesn't exist
 
         // instantiate new pool

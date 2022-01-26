@@ -28,6 +28,11 @@ contract Pair is ERC20 {
         token1 = _token1;
     }
 
+    function getAmounts() view external returns (uint112 amount0, uint112 amount1) {
+        amount0 = x;
+        amount1 = y;
+    }
+
     // Utility function
     function _update(uint balance0, uint balance1, uint112 _x, uint112 _y) private {
         // Block timestamp calculations
