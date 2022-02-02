@@ -77,4 +77,30 @@ contract Router {
         (uint amount0Burn, uint amount1Burn) = Pair(pair).burn(to);
         (amount0, amount1) = (amount0Burn, amount1Burn);
     }
+
+    // *** SWAPPING ***
+    function _swap(uint[] memory amounts, address[] memory path, address _to) internal {
+        for (uint i; i < path.length - 1; i++) {
+            // Calculate source & destination
+            (address input, address output) = (path[i], path[i + 1]);
+            (address token0,) = input < output ? (input, output) : (output, input);
+            uint amountOut = amounts[i + 1];
+            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
+            address to = i < path.length - 2 ? Factory(factory).getPair(output, path[i + 2]) : _to;
+
+            // Execute swap on pair contract
+            Pair(Factory(factory).getPair(input, output)).swap(
+                amount0Out, amount1Out, to
+            );
+        }
+    }
+
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to)
+    external returns (uint[] memory amounts) {
+
+    }
 }
