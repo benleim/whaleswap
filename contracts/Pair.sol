@@ -108,7 +108,7 @@ contract Pair is ERC20 {
 
         uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
         uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
-        require(balance0Adjusted.mul(balance1Adjusted) >= uint(x).mul(y).mul(1000**2), 'UniswapV2: K');
+        require(balance0Adjusted.mul(balance1Adjusted) >= uint(x).mul(y).mul(1000**2), 'Whaleswap: K');
 
         _update(balance0, balance1, x, y);
     }

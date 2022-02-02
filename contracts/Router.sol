@@ -83,7 +83,7 @@ contract Router {
         for (uint i; i < path.length - 1; i++) {
             // Calculate source & destination
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0,) = input < output ? (input, output) : (output, input);
+            (address token0,) = _sortTokens(input, output);
             uint amountOut = amounts[i + 1];
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
             address to = i < path.length - 2 ? Factory(factory).getPair(output, path[i + 2]) : _to;
@@ -97,10 +97,40 @@ contract Router {
 
     function swapExactTokensForTokens(
         uint amountIn,
-        uint amountOutMin,
         address[] calldata path,
         address to)
     external returns (uint[] memory amounts) {
+        amounts = _getAmountsOut(amountIn, path);
 
+        ERC20(path[0]).transferFrom(msg.sender, Factory(factory).getPair(path[0], path[1]), amounts[0]);
+
+        _swap(amounts, path, to);
+    }
+
+    // *** UTILITIES ***
+    function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
+        (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+    }
+    
+    function _getReserves(address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {    
+        (address token0,) = _sortTokens(tokenA, tokenB);
+        (uint reserve0, uint reserve1) = Pair(Factory(factory).getPair(tokenA, tokenB)).getAmounts();
+        (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+    }
+
+    function _getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
+        uint amountInWithFee = amountIn.mul(997);
+        uint numerator = amountInWithFee.mul(reserveOut);
+        uint denominator = reserveIn.mul(1000).add(amountInWithFee);
+        amountOut = numerator / denominator;
+    }
+
+    function _getAmountsOut(uint amountIn, address[] memory path) internal view returns (uint[] memory amounts) {
+        amounts = new uint[](path.length);
+        amounts[0] = amountIn;
+        for (uint i; i < path.length - 1; i++) {
+            (uint reserveIn, uint reserveOut) = _getReserves(path[i], path[i + 1]);
+            amounts[i + 1] = _getAmountOut(amounts[i], reserveIn, reserveOut);
+        }
     }
 }
