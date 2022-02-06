@@ -98,9 +98,21 @@ contract Router {
     function swapExactTokensForTokens(
         uint amountIn,
         address[] calldata path,
-        address to)
-    external returns (uint[] memory amounts) {
+        address to
+    ) external returns (uint[] memory amounts) {
         amounts = _getAmountsOut(amountIn, path);
+
+        ERC20(path[0]).transferFrom(msg.sender, Factory(factory).getPair(path[0], path[1]), amounts[0]);
+
+        _swap(amounts, path, to);
+    }
+
+    function swapTokensForExactTokens(
+        uint amountOut,
+        address[] calldata path,
+        address to
+    ) external returns (uint[] memory amounts) {
+        amounts = _getAmountsIn(amountOut, path);
 
         ERC20(path[0]).transferFrom(msg.sender, Factory(factory).getPair(path[0], path[1]), amounts[0]);
 
@@ -125,12 +137,27 @@ contract Router {
         amountOut = numerator / denominator;
     }
 
+    function _getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal pure returns (uint amountIn) {
+        uint numerator = reserveIn.mul(amountOut).mul(1000);
+        uint denominator = reserveOut.sub(amountOut).mul(997);
+        amountIn = (numerator / denominator).add(1);
+    }
+
     function _getAmountsOut(uint amountIn, address[] memory path) internal view returns (uint[] memory amounts) {
         amounts = new uint[](path.length);
         amounts[0] = amountIn;
         for (uint i; i < path.length - 1; i++) {
             (uint reserveIn, uint reserveOut) = _getReserves(path[i], path[i + 1]);
             amounts[i + 1] = _getAmountOut(amounts[i], reserveIn, reserveOut);
+        }
+    }
+
+    function _getAmountsIn(uint amountOut, address[] memory path) internal view returns (uint[] memory amounts) {
+        amounts = new uint[](path.length);
+        amounts[path.length - 1] = amountOut;
+        for (uint i = path.length - 1; i > 0; i--) {
+            (uint reserveIn, uint reserveOut) = _getReserves(path[i - 1], path[i]);
+            amounts[i - 1] = _getAmountIn(amounts[i], reserveIn, reserveOut);
         }
     }
 }
