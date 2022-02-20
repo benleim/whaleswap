@@ -119,7 +119,7 @@ contract Router {
         _swap(amounts, path, to);
     }
 
-    // *** UTILITIES ***
+    // -------- LIBRARY FUNCTIONS --------
     function _sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
         (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
     }
