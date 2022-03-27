@@ -14,6 +14,7 @@ library TWAMM {
         address tokenX;
         address tokenY;
 
+        uint256 currentRate;
         uint256 lastExecutionBlock;
 
         mapping (uint256 => LongTermOrder) orders;
@@ -31,6 +32,18 @@ library TWAMM {
     }
 
     function executeVirtualOrders(OrderPools storage self) external {
+
+    }
+
+    function createVirtualOrder(OrderPools storage self) external {
+
+    }
+
+    function cancelVirtualOrder(OrderPools storage self, uint id) external {
+
+    }
+
+    function withdrawVirtualOrder(OrderPools storage self, uint id) external {
 
     }
 }
