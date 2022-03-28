@@ -5,7 +5,7 @@ library TWAMM {
         uint orderExpireInterval;
 
         OrderPool orderPoolX;
-        OrderPool orderPool;
+        OrderPool orderPoolY;
     }
 
     struct OrderPool {
@@ -31,19 +31,21 @@ library TWAMM {
         bool canceled;
     }
 
-    function executeVirtualOrders(OrderPools storage self) external {
+    // NOTE: have to pass reserves by reference for updating
+    // NOTE: access modifier 'internal' inlines the code into calling contract
+    function executeVirtualOrders(OrderPools storage self, uint[2] storage reserves) internal {
+        
+    }
+
+    function createVirtualOrder(OrderPools storage self, address token1, address token2, uint256 startBlock, uint256 endBlock, uint salesRate) internal {
+        
+    }
+
+    function cancelVirtualOrder(OrderPools storage self, uint id) internal {
 
     }
 
-    function createVirtualOrder(OrderPools storage self) external {
-
-    }
-
-    function cancelVirtualOrder(OrderPools storage self, uint id) external {
-
-    }
-
-    function withdrawVirtualOrder(OrderPools storage self, uint id) external {
+    function withdrawVirtualOrder(OrderPools storage self, uint id) internal {
 
     }
 }
