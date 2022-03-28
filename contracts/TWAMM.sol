@@ -13,7 +13,7 @@ library TWAMM {
         address tokenX;
         address tokenY;
 
-        uint256 currentRate;
+        uint256 saleRate;
         uint256 lastExecutionBlock;
 
         mapping (uint256 => LongTermOrder) orders;
@@ -27,10 +27,11 @@ library TWAMM {
         uint256 finalBlock;
         uint ratePerBlock;
 
-        bool canceled;
+        bool active;
     }
 
-    event OrderCreated(address token1, address token2, address creator);
+    event OrderCreated(uint id, address token1, address token2, address creator);
+    event OrderCancelled(uint id, address token1, address token2);
 
     // NOTE: have to pass reserves by reference for updating
     // NOTE: access modifier 'internal' inlines the code into calling contract
@@ -43,7 +44,7 @@ library TWAMM {
         require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
 
         // increment sales rate
-        pool.currentRate += _salesRate;
+        pool.saleRate += _salesRate;
         
         // instantiate order
         pool.orders[pool.orderId] = LongTermOrder({
@@ -52,20 +53,33 @@ library TWAMM {
             beginBlock: _startBlock,
             finalBlock: _endBlock,
             ratePerBlock: _salesRate,
-            canceled: false
+            active: false
         });
 
         // increment counter
         pool.orderId++;
 
-        emit OrderCreated(_token1, _token2, msg.sender);
+        emit OrderCreated(pool.orderId - 1, _token1, _token2, msg.sender);
     }
 
-    function cancelVirtualOrder(OrderPools storage self, uint id) internal {
+    function cancelVirtualOrder(OrderPools storage self, uint _id, address _token1, address _token2) internal {
+        // fetch proper OrderPool
+        OrderPool storage pool = self.pools[_token1][_token2];
+        require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
 
+        // fetch LongTermOrder by given id
+        LongTermOrder storage order = pool.orders[_id];
+        require(order.id != 0, "WHALESWAP: INVALID ORDER");
+        require(order.creator == msg.sender, "WHALESWAP: PERMISSION DENIED");
+
+        pool.saleRate -= order.ratePerBlock;
+
+        order.active = true;
+
+        emit OrderCancelled(_id, _token1, _token2);
     }
 
-    function withdrawVirtualOrder(OrderPools storage self, uint id) internal {
+    function withdrawVirtualOrder(OrderPools storage self, uint _id) internal {
 
     }
 }
