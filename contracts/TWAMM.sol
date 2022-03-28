@@ -1,4 +1,4 @@
-pragma solidity >= 0.8.0;
+pragma solidity >=0.8.0;
 
 library TWAMM {
     struct OrderPools {
@@ -43,6 +43,10 @@ library TWAMM {
         OrderPool storage pool = self.pools[_token1][_token2];
         require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
 
+        // argument validation
+        require(_startBlock < _endBlock, "WHALESWAP: START / END ORDER");
+        require(_salesRate != 0, "WHALESWAP: ZERO SALES RATE");
+
         // increment sales rate
         pool.saleRate += _salesRate;
         
@@ -79,7 +83,15 @@ library TWAMM {
         emit OrderCancelled(_id, _token1, _token2);
     }
 
-    function withdrawVirtualOrder(OrderPools storage self, uint _id) internal {
+    function withdrawVirtualOrder(OrderPools storage self, address _token1, address _token2, uint _id) internal {
+        // fetch proper OrderPool
+        OrderPool storage pool = self.pools[_token1][_token2];
+        require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
 
+        // fetch LongTermOrder by given id
+        LongTermOrder storage order = pool.orders[_id];
+        require(order.id != 0, "WHALESWAP: INVALID ORDER");
+        require(order.creator == msg.sender, "WHALESWAP: PERMISSION DENIED");
+        require(order.finalBlock >= block.timestamp, "WHALESWAP: ORDER EXECUTING");
     }
 }
