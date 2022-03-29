@@ -5,6 +5,7 @@ import "@rari-capital/solmate/src/tokens/ERC20.sol";
 import "./libraries/Math.sol";
 import "./libraries/SafeMath.sol";
 import "./libraries/UQ112x112.sol";
+import "./TWAMM.sol";
 
 contract Pair is ERC20 {
     using SafeMath  for uint;
@@ -21,6 +22,8 @@ contract Pair is ERC20 {
     uint public price0Cumulative;
     uint public price1Cumulative;
     uint32 public lastBlockTimestamp;
+
+    TWAMM.OrderPools orderPools;
 
     constructor(address _token0, address _token1) ERC20("lWhale", "lWHL", 18) {
         factory = msg.sender;

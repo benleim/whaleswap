@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 library TWAMM {
     struct OrderPools {
         uint orderExpireInterval;
+        uint lastExecutedBlock;
 
         mapping (address => mapping(address => OrderPool)) pools;
     }
@@ -17,6 +18,7 @@ library TWAMM {
         uint256 lastExecutionBlock;
 
         mapping (uint256 => LongTermOrder) orders;
+        mapping (uint => uint) expirationByBlockInterval;
     }
 
     struct LongTermOrder {
@@ -32,6 +34,11 @@ library TWAMM {
 
     event OrderCreated(uint id, address token1, address token2, address creator);
     event OrderCancelled(uint id, address token1, address token2);
+
+    function initialize(OrderPools storage self, uint _orderExpireInterval) internal {
+        self.orderExpireInterval = _orderExpireInterval;
+        self.lastExecutedBlock = block.number;
+    }
 
     // NOTE: have to pass reserves by reference for updating
     // NOTE: access modifier 'internal' inlines the code into calling contract
@@ -59,6 +66,9 @@ library TWAMM {
             ratePerBlock: _salesRate,
             active: false
         });
+
+        // set expiration amount
+        pool.expirationByBlockInterval[_endBlock] += _salesRate;
 
         // increment counter
         pool.orderId++;
@@ -92,6 +102,9 @@ library TWAMM {
         LongTermOrder storage order = pool.orders[_id];
         require(order.id != 0, "WHALESWAP: INVALID ORDER");
         require(order.creator == msg.sender, "WHALESWAP: PERMISSION DENIED");
-        require(order.finalBlock >= block.timestamp, "WHALESWAP: ORDER EXECUTING");
+        require(order.finalBlock >= block.timestamp, "WHALESWAP: order still executing");
+
+        // execute withdrawl
+
     }
 }
