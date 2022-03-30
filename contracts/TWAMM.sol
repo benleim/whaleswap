@@ -43,7 +43,9 @@ library TWAMM {
     // NOTE: have to pass reserves by reference for updating
     // NOTE: access modifier 'internal' inlines the code into calling contract
     function executeVirtualOrders(OrderPools storage self, uint[2] storage reserves) internal {
+        // execute virtual reserve changes for every interval
 
+        // 
     }
 
     function createVirtualOrder(OrderPools storage self, address _token1, address _token2, uint256 _startBlock, uint256 _endBlock, uint _salesRate) internal {

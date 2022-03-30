@@ -29,6 +29,7 @@ contract Pair is ERC20 {
         factory = msg.sender;
         token0 = _token0;
         token1 = _token1;
+        TWAMM.initialize(orderPools, 60);
     }
 
     function getAmounts() view external returns (uint112 amount0, uint112 amount1) {
@@ -114,5 +115,30 @@ contract Pair is ERC20 {
         require(balance0Adjusted.mul(balance1Adjusted) >= uint(x).mul(y).mul(1000**2), 'Whaleswap: K');
 
         _update(balance0, balance1, x, y);
+    }
+
+    /*
+        @method LongTermOrder
+        @parameter: _endBlock - the block number when LTO ends
+        @parameter: _salesRate - swap rate per single block
+     */
+    function longTermSwapTokenXtoY(uint _endBlock, uint _salesRate) external {
+        _longTermSwap(token0, token1, _endBlock, _salesRate);
+    }
+
+    function longTermSwapTokenYtoX(uint _endBlock, uint _salesRate) external {
+        _longTermSwap(token1, token0, _endBlock, _salesRate);
+    }
+
+    function _longTermSwap(address _token0, address _token1, uint _endBlock, uint _salesRate) private {
+        require(_endBlock % orderPools.orderExpireInterval == 0, "WHALESWAP: Invalid ending block");
+        // find next elligible block in interval
+        uint nextStartBlock = block.number + (orderPools.orderExpireInterval - (block.number % orderPools.orderExpireInterval));
+        // calculate number of intervals between startBlock and endBlock
+        uint numberOfIntervals = _endBlock / nextStartBlock;
+        // numIntervals * salesRate is transfer amount
+        uint transferAmount = numberOfIntervals * (_salesRate * orderPools.orderExpireInterval);
+        // create LongTermSwap
+        TWAMM.createVirtualOrder(orderPools, _token0, _token1, nextStartBlock, _endBlock, _salesRate);
     }
 }
