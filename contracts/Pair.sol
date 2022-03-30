@@ -72,7 +72,6 @@ contract Pair is ERC20 {
         _update(balance0, balance1, x, y);
     }
 
-    // burn()
     function burn(address to) external returns (uint amount0, uint amount1) {
         uint balance0 = ERC20(token0).balanceOf(address(this));
         uint balance1 = ERC20(token1).balanceOf(address(this));
@@ -94,7 +93,6 @@ contract Pair is ERC20 {
         _update(balance0, balance1, x, y);
     }
 
-    // swap()
     function swap(uint amount0Out, uint amount1Out, address to) external {
         uint balance0;
         uint balance1;

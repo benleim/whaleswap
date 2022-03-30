@@ -5,6 +5,9 @@ library TWAMM {
         uint orderExpireInterval;
         uint lastExecutedBlock;
 
+        address tokenX;
+        address tokenY;
+
         mapping (address => mapping(address => OrderPool)) pools;
     }
 
@@ -35,15 +38,31 @@ library TWAMM {
     event OrderCreated(uint id, address token1, address token2, address creator);
     event OrderCancelled(uint id, address token1, address token2);
 
-    function initialize(OrderPools storage self, uint _orderExpireInterval) internal {
+    function initialize(OrderPools storage self, address _token0, address _token1, uint _orderExpireInterval) internal {
         self.orderExpireInterval = _orderExpireInterval;
         self.lastExecutedBlock = block.number;
+        self.tokenX = _token0;
+        self.tokenY = _token1;
     }
 
     // NOTE: have to pass reserves by reference for updating
     // NOTE: access modifier 'internal' inlines the code into calling contract
     function executeVirtualOrders(OrderPools storage self, uint[2] storage reserves) internal {
+        // calc number of passed intervals
+        uint prevBlockInterval = block.number - (block.number % self.orderExpireInterval);
+        uint numberIntervals = prevBlockInterval / self.lastExecutedBlock;
+
         // execute virtual reserve changes for every interval
+        for (uint16 i = 0; i < numberIntervals; i++) {
+            uint currBlockInterval = self.lastExecutedBlock + ((i+1) * self.orderExpireInterval);
+            // TODO: EXECUTE ORDER
+            uint xToYSales = self.pools[self.tokenX][self.tokenY].saleRate;
+            uint yToXSales = self.pools[self.tokenY][self.tokenX].saleRate;
+
+            // update for expiring orders
+            self.pools[self.tokenX][self.tokenY].saleRate -= self.pools[self.tokenX][self.tokenY].expirationByBlockInterval[currBlockInterval];
+            self.pools[self.tokenY][self.tokenX].saleRate -= self.pools[self.tokenY][self.tokenX].expirationByBlockInterval[currBlockInterval];
+        }
 
         // 
     }
