@@ -1,6 +1,11 @@
 pragma solidity >=0.8.0;
 
+// NOTE: Need to change s.t. executeVirtualOrders work for all previous blocks (not just intervals)
+import "./libraries/Math.sol";
+
 library TWAMM {
+    using Math for uint;
+
     struct OrderPools {
         uint orderExpireInterval;
         uint lastExecutedBlock;
@@ -53,18 +58,25 @@ library TWAMM {
         uint numberIntervals = prevBlockInterval / self.lastExecutedBlock;
 
         // execute virtual reserve changes for every interval
+        OrderPool storage pool1 = self.pools[self.tokenX][self.tokenY];
+        OrderPool storage pool2 = self.pools[self.tokenY][self.tokenX];
+
         for (uint16 i = 0; i < numberIntervals; i++) {
             uint currBlockInterval = self.lastExecutedBlock + ((i+1) * self.orderExpireInterval);
-            // TODO: EXECUTE ORDER
-            uint xToYSales = self.pools[self.tokenX][self.tokenY].saleRate;
-            uint yToXSales = self.pools[self.tokenY][self.tokenX].saleRate;
+            // execute order
+            uint saleRate1 = pool1.saleRate;
+            uint saleRate2 = pool2.saleRate;
+
+            // TODO: calculate reserves
+            (uint xOut, uint yOut) = computeVirtualBalances();
+
+            // TODO: update reserves
+
 
             // update for expiring orders
-            self.pools[self.tokenX][self.tokenY].saleRate -= self.pools[self.tokenX][self.tokenY].expirationByBlockInterval[currBlockInterval];
-            self.pools[self.tokenY][self.tokenX].saleRate -= self.pools[self.tokenY][self.tokenX].expirationByBlockInterval[currBlockInterval];
+            pool1.saleRate -= pool1.expirationByBlockInterval[currBlockInterval];
+            pool2.saleRate -= pool2.expirationByBlockInterval[currBlockInterval];
         }
-
-        // 
     }
 
     function createVirtualOrder(OrderPools storage self, address _token1, address _token2, uint256 _startBlock, uint256 _endBlock, uint _salesRate) internal {
@@ -74,6 +86,7 @@ library TWAMM {
         // argument validation
         require(_startBlock < _endBlock, "WHALESWAP: START / END ORDER");
         require(_salesRate != 0, "WHALESWAP: ZERO SALES RATE");
+        require(_endBlock % self.orderExpireInterval == 0, "WHALESWAP: INVALID ENDING BLOCK");
 
         // increment sales rate
         pool.saleRate += _salesRate;
@@ -111,6 +124,8 @@ library TWAMM {
 
         order.active = true;
 
+        // update expirationByBlockInterval()
+
         emit OrderCancelled(_id, _token1, _token2);
     }
 
@@ -127,5 +142,19 @@ library TWAMM {
 
         // execute withdrawl
 
+    }
+
+    function computeVirtualBalances(uint xStart, uint yStart, uint xRate, uint yRate, uint numberBlocks) view internal returns (uint x, uint y) {
+        uint k = xStart * yStart;
+        uint xIn = xRate * numberBlocks;
+        uint yIn = yRate * numberBlocks;
+        uint xAmmEndLefthand = Math.sqrt((k * xIn) / yIn);
+        uint eExp = 2 * Math.sqrt(xIn * yIn / k);
+        
+        uint xAmmStartYIn = Math.sqrt(xStart * yIn);
+        uint yAmmStartXIn = Math.sqrt(yStart * xIn);
+        uint c = (xAmmStartYIn - yAmmStartXIn) / (xAmmStartYIn + yAmmStartXIn);
+
+        uint xAmmEnd = xAmmEndLefthand * 
     }
 }

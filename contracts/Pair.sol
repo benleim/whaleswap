@@ -29,7 +29,7 @@ contract Pair is ERC20 {
         factory = msg.sender;
         token0 = _token0;
         token1 = _token1;
-        TWAMM.initialize(orderPools, 60);
+        TWAMM.initialize(orderPools, token0, token1, 50);
     }
 
     function getAmounts() view external returns (uint112 amount0, uint112 amount1) {
@@ -120,15 +120,15 @@ contract Pair is ERC20 {
         @parameter: _endBlock - the block number when LTO ends
         @parameter: _salesRate - swap rate per single block
      */
-    function longTermSwapTokenXtoY(uint _endBlock, uint _salesRate) external {
+    function longTermSwapTokenXtoY(uint _endBlock, uint _totalXIn) external {
         _longTermSwap(token0, token1, _endBlock, _salesRate);
     }
 
-    function longTermSwapTokenYtoX(uint _endBlock, uint _salesRate) external {
+    function longTermSwapTokenYtoX(uint _endBlock, uint _totalYIn) external {
         _longTermSwap(token1, token0, _endBlock, _salesRate);
     }
 
-    function _longTermSwap(address _token0, address _token1, uint _endBlock, uint _salesRate) private {
+    function _longTermSwap(address _token0, address _token1, uint _endBlock, uint _totalIn) private {
         require(_endBlock % orderPools.orderExpireInterval == 0, "WHALESWAP: Invalid ending block");
         // find next elligible block in interval
         uint nextStartBlock = block.number + (orderPools.orderExpireInterval - (block.number % orderPools.orderExpireInterval));
