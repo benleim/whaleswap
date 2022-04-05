@@ -62,6 +62,7 @@ library TWAMM {
         OrderPool storage pool1 = self.pools[self.tokenX][self.tokenY];
         OrderPool storage pool2 = self.pools[self.tokenY][self.tokenX];
 
+        // TODO: Improve the logic here - very gas inefficient
         for (uint16 i = 0; i < numberIntervals; i++) {
             uint currBlockInterval = self.lastExecutedBlock + ((i+1) * self.orderExpireInterval);
             // execute order
@@ -82,6 +83,9 @@ library TWAMM {
     /// @notice method for creating a time-weighted average virtual order over time
     /// @dev order begins as soon as function is called
     function createVirtualOrder(OrderPools storage self, address _token1, address _token2, uint256 _endBlock, uint _salesRate) internal {
+        // update virtual orders status
+        // executeVirtualOrders(self, reserves);
+
         OrderPool storage pool = self.pools[_token1][_token2];
         require(pool.orderId != 0, "WHALESWAP: invalid token pair");
 
@@ -114,6 +118,9 @@ library TWAMM {
 
     /// @notice cancels an existing, active virtual order by identifier
     function cancelVirtualOrder(OrderPools storage self, uint _id, address _token1, address _token2) internal {
+        // update virtual orders status
+        // executeVirtualOrders(self, reserves);
+
         // calculate reserve changes
         // calculateVirtualReserves()
 
@@ -138,6 +145,9 @@ library TWAMM {
 
     /// @notice withdraw from a completed virtual order
     function withdrawVirtualOrder(OrderPools storage self, address _token1, address _token2, uint _id) internal {
+        // update virtual orders status
+        // executeVirtualOrders(self, reserves);
+
         // fetch proper OrderPool
         OrderPool storage pool = self.pools[_token1][_token2];
         require(pool.orderId != 0, "WHALESWAP: invalid token pair");
@@ -152,6 +162,7 @@ library TWAMM {
 
     }
 
+    /// @notice logic for computing TWAMM virtual change in underlying reserves
     function computeVirtualBalances(uint xStart, uint yStart, uint xRate, uint yRate, uint numberBlocks) view internal returns (uint x, uint y) {
         uint k = xStart * yStart;
         uint xIn = xRate * numberBlocks;

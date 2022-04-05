@@ -117,15 +117,16 @@ contract Pair is ERC20 {
         _update(balance0, balance1, x, y);
     }
 
-    /*
-        @method LongTermOrder
-        @parameter: _endBlock - the block number when LTO ends
-        @parameter: _salesRate - swap rate per single block
-     */
+    /// @notice execute long term swap buying Y & selling X
+    /// @param _intervalNumber - the block number when LTO ends
+    /// @param _totalXIn - total amount of tokenX to transfer
     function longTermSwapTokenXtoY(uint _intervalNumber, uint _totalXIn) external {
         _longTermSwap(token0, token1, _intervalNumber, _totalXIn, 0);
     }
 
+    /// @notice execute long term swap buying X & selling Y
+    /// @param _intervalNumber - the block number when LTO ends
+    /// @param _totalYIn - total amount of tokenY to transfer
     function longTermSwapTokenYtoX(uint _intervalNumber, uint _totalYIn) external {
         _longTermSwap(token1, token0, _intervalNumber, 0, _totalYIn);
     }
@@ -146,5 +147,15 @@ contract Pair is ERC20 {
 
         // create LongTermSwap
         TWAMM.createVirtualOrder(orderPools, _token0, _token1, endIntervalBlock, blockSalesRate);
+    }
+
+    /// @notice retrieve long term swap by id
+    function getLongTermSwapXtoY(uint _id) external returns (TWAMM.LongTermOrder memory order) {
+        order = orderPools.pools[token0][token1].orders[_id];
+    }
+
+    /// @notice retrieve long term swap by id
+    function getLongTermSwapYtoX(uint _id) external returns (TWAMM.LongTermOrder memory order) {
+        order = orderPools.pools[token1][token0].orders[_id];
     }
 }
