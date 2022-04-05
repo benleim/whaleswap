@@ -9,7 +9,7 @@ describe("Factory", function () {
   let factory: Factory;
   let token1: Contract;
   let token2: Contract;
-  let owner, addr1, addr2, addr3;
+  let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress, addr3: SignerWithAddress;
 
   beforeEach(async function() {
     // Fetch accounts
@@ -73,6 +73,7 @@ describe("Pair", function () {
     let balanceBefore = await token1.balanceOf(owner.address);
     let response = await pair.longTermSwapTokenXtoY(numberOfIntervals,ltoAmount);
     let balanceAfter = await token1.balanceOf(owner.address);
+    console.log(balanceBefore, balanceAfter);
 
     expect(balanceBefore - balanceAfter).to.equal(ltoAmount);
     
