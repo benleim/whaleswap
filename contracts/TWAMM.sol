@@ -110,6 +110,9 @@ library TWAMM {
     }
 
     function cancelVirtualOrder(OrderPools storage self, uint _id, address _token1, address _token2) internal {
+        // calculate reserve changes
+        // calculateVirtualReserves()
+
         // fetch proper OrderPool
         OrderPool storage pool = self.pools[_token1][_token2];
         require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
@@ -121,7 +124,7 @@ library TWAMM {
 
         // decrease current sales rate & old expiring block rate change
         pool.saleRate -= order.ratePerBlock;
-        pool.expirationByBlockInterval -= order.ratePerBlock;
+        pool.expirationByBlockInterval[order.finalBlock] -= order.ratePerBlock;
 
         order.active = false;
 
@@ -154,6 +157,8 @@ library TWAMM {
         uint yAmmStartXIn = Math.sqrt(yStart * xIn);
         uint c = (xAmmStartYIn - yAmmStartXIn) / (xAmmStartYIn + yAmmStartXIn);
 
-        uint xAmmEnd = xAmmEndLefthand * 
+        // uint xAmmEnd = xAmmEndLefthand * 
+        x = 1;
+        y = 1;
     }
 }

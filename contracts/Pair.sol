@@ -3,12 +3,10 @@ pragma solidity >=0.8.0;
 import "@rari-capital/solmate/src/tokens/ERC20.sol";
 
 import "./libraries/Math.sol";
-import "./libraries/SafeMath.sol";
 import "./libraries/UQ112x112.sol";
 import "./TWAMM.sol";
 
 contract Pair is ERC20 {
-    using SafeMath  for uint;
     using UQ112x112 for uint224;
 
     address public factory;
@@ -25,11 +23,11 @@ contract Pair is ERC20 {
 
     TWAMM.OrderPools orderPools;
 
-    constructor(address _token0, address _token1) ERC20("lWhale", "lWHL", 18) {
+    constructor(address _token0, address _token1, uint _twammIntervalSize) ERC20("lWhale", "lWHL", 18) {
         factory = msg.sender;
         token0 = _token0;
         token1 = _token1;
-        TWAMM.initialize(orderPools, token0, token1, 50);
+        TWAMM.initialize(orderPools, _token0, _token1, _twammIntervalSize);
     }
 
     function getAmounts() view external returns (uint112 amount0, uint112 amount1) {
@@ -60,13 +58,13 @@ contract Pair is ERC20 {
         // update reserves
         uint balance0 = ERC20(token0).balanceOf(address(this));
         uint balance1 = ERC20(token1).balanceOf(address(this));
-        uint amount0 = balance0.sub(x);
-        uint amount1 = balance1.sub(y);
+        uint amount0 = balance0 - x;
+        uint amount1 = balance1 - y;
 
         if (totalSupply == 0) {
-            liquidity = Math.sqrt(amount0.mul(amount1));
+            liquidity = Math.sqrt(amount0 * amount1);
         } else {
-            liquidity = Math.min(amount0.mul(totalSupply) / x, amount1.mul(totalSupply) / y);
+            liquidity = Math.min((amount0 * totalSupply) / x, (amount1 * totalSupply) / y);
         }
         _mint(to, liquidity); // ERC-20 function
         _update(balance0, balance1, x, y);
@@ -77,8 +75,8 @@ contract Pair is ERC20 {
         uint balance1 = ERC20(token1).balanceOf(address(this));
         uint liquidity = balanceOf[address(this)];
         
-        amount0 = liquidity.mul(balance0) / totalSupply;
-        amount1 = liquidity.mul(balance1) / totalSupply;
+        amount0 = liquidity * (balance0) / totalSupply;
+        amount1 = liquidity * (balance1) / totalSupply;
 
         _burn(address(this), liquidity); // burn liquidity tokens
 
@@ -108,9 +106,9 @@ contract Pair is ERC20 {
         uint amount0In = balance0 > x - amount0Out ? balance0 - (x - amount0Out) : 0;
         uint amount1In = balance1 > y - amount1Out ? balance1 - (y - amount1Out) : 0;
 
-        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
-        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
-        require(balance0Adjusted.mul(balance1Adjusted) >= uint(x).mul(y).mul(1000**2), 'Whaleswap: K');
+        uint balance0Adjusted = (balance0 * 1000) - (amount0In * 3);
+        uint balance1Adjusted = (balance1 * 1000) - (amount1In * 3);
+        require(balance0Adjusted * balance1Adjusted >= uint(x) * y * (1000**2), 'Whaleswap: K');
 
         _update(balance0, balance1, x, y);
     }
