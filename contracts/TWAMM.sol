@@ -72,7 +72,6 @@ library TWAMM {
 
             // TODO: update reserves
 
-
             // update for expiring orders
             pool1.saleRate -= pool1.expirationByBlockInterval[currBlockInterval];
             pool2.saleRate -= pool2.expirationByBlockInterval[currBlockInterval];
@@ -120,11 +119,11 @@ library TWAMM {
         require(order.id != 0, "WHALESWAP: INVALID ORDER");
         require(order.creator == msg.sender, "WHALESWAP: PERMISSION DENIED");
 
+        // decrease current sales rate & old expiring block rate change
         pool.saleRate -= order.ratePerBlock;
+        pool.expirationByBlockInterval -= order.ratePerBlock;
 
-        order.active = true;
-
-        // update expirationByBlockInterval()
+        order.active = false;
 
         emit OrderCancelled(_id, _token1, _token2);
     }
@@ -132,15 +131,15 @@ library TWAMM {
     function withdrawVirtualOrder(OrderPools storage self, address _token1, address _token2, uint _id) internal {
         // fetch proper OrderPool
         OrderPool storage pool = self.pools[_token1][_token2];
-        require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
+        require(pool.orderId != 0, "WHALESWAP: invalid token pair");
 
         // fetch LongTermOrder by given id
         LongTermOrder storage order = pool.orders[_id];
-        require(order.id != 0, "WHALESWAP: INVALID ORDER");
-        require(order.creator == msg.sender, "WHALESWAP: PERMISSION DENIED");
+        require(order.id != 0, "WHALESWAP: invalid order id");
+        require(order.creator == msg.sender, "WHALESWAP: permission denied");
         require(order.finalBlock >= block.timestamp, "WHALESWAP: order still executing");
 
-        // execute withdrawl
+        // execute withdraw
 
     }
 

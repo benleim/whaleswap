@@ -9,8 +9,8 @@ contract Factory {
 
     function createPair(address token0, address token1) external returns (address pair) {
         // requirements
-        require(token0 != token1, "Tokens cannot be the same.");
-        // TODO: Check pair doesn't exist
+        require(token0 != token1, "WHALESWAP: Tokens cannot be the same");
+        require(getPair[token0][token1] == address(0x0), 'WHALESWAP: Pair already exists');
 
         // instantiate new pool
         pair = address(new Pair(token0, token1));
