@@ -7,18 +7,18 @@ contract Factory {
 
     event PairDeployed(address indexed token0, address indexed token1, address pair);
 
-    function createPair(address token0, address token1) external returns (address pair) {
+    function createPair(address _token0, address _token1, uint _interval) external returns (address pair) {
         // requirements
-        require(token0 != token1, "WHALESWAP: Tokens cannot be the same");
-        require(getPair[token0][token1] == address(0x0), 'WHALESWAP: Pair already exists');
+        require(_token0 != _token1, "WHALESWAP: Tokens cannot be the same");
+        require(getPair[_token0][_token1] == address(0x0), "WHALESWAP: Pair already exists");
 
         // instantiate new pool
-        pair = address(new Pair(token0, token1));
+        pair = address(new Pair(_token0, _token1, _interval));
         
         // record new pair address
-        getPair[token0][token1] = pair;
-        getPair[token1][token0] = pair;
+        getPair[_token0][_token1] = pair;
+        getPair[_token1][_token0] = pair;
 
-        emit PairDeployed(token0, token1, pair);
+        emit PairDeployed(_token0, _token1, pair);
     }
 }

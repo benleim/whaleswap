@@ -70,7 +70,7 @@ library TWAMM {
             uint saleRate2 = pool2.saleRate;
 
             // TODO: calculate reserves
-            (uint xOut, uint yOut) = computeVirtualBalances();
+            // (uint xOut, uint yOut) = computeVirtualBalances();
 
             // TODO: update reserves
 

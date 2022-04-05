@@ -2,13 +2,10 @@ pragma solidity >= 0.8.0;
 
 import "@rari-capital/solmate/src/tokens/ERC20.sol";
 
-import "./libraries/SafeMath.sol";
 import "./Pair.sol";
 import "./Factory.sol";
 
 contract Router {
-    using SafeMath for uint;
-
     address public factory;
 
     constructor (address _factory) {
@@ -29,13 +26,13 @@ contract Router {
         if (x == 0 && y == 0) {
             (amount0, amount1) = (desiredAmount0, desiredAmount1);
         } else {
-            uint optimalAmount1 = desiredAmount0.mul(y) / x;
+            uint optimalAmount1 = desiredAmount0 * y / x;
             if (optimalAmount1 <= desiredAmount1) {
                 // TODO: Add checks
                 require(optimalAmount1 >= minAmount1, "Invalid token1 minimum");
                 (amount0, amount1) = (desiredAmount0, optimalAmount1);
             } else {
-                uint optimalAmount0 = desiredAmount1.mul(x) / y;
+                uint optimalAmount0 = desiredAmount1 * x / y;
                 require(optimalAmount0 >= minAmount0, "Invalid Token0 minimum");
                 (amount0, amount1) = (optimalAmount0, desiredAmount1);
             }
@@ -131,16 +128,16 @@ contract Router {
     }
 
     function _getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
-        uint amountInWithFee = amountIn.mul(997);
-        uint numerator = amountInWithFee.mul(reserveOut);
-        uint denominator = reserveIn.mul(1000).add(amountInWithFee);
+        uint amountInWithFee = amountIn * 997;
+        uint numerator = amountInWithFee * reserveOut;
+        uint denominator = reserveIn * 1000 + amountInWithFee;
         amountOut = numerator / denominator;
     }
 
     function _getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal pure returns (uint amountIn) {
-        uint numerator = reserveIn.mul(amountOut).mul(1000);
-        uint denominator = reserveOut.sub(amountOut).mul(997);
-        amountIn = (numerator / denominator).add(1);
+        uint numerator = reserveIn * amountOut * 1000;
+        uint denominator = (reserveOut - amountOut) * 997;
+        amountIn = (numerator / denominator) + 1;
     }
 
     function _getAmountsOut(uint amountIn, address[] memory path) internal view returns (uint[] memory amounts) {

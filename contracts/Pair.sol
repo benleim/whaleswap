@@ -112,7 +112,7 @@ contract Pair is ERC20 {
 
         uint balance0Adjusted = (balance0 * 1000) - (amount0In * 3);
         uint balance1Adjusted = (balance1 * 1000) - (amount1In * 3);
-        require(balance0Adjusted * balance1Adjusted >= uint(x) * y * (1000**2), 'Whaleswap: K');
+        require(balance0Adjusted * balance1Adjusted >= uint(x) * y * (1000**2), "Whaleswap: K");
 
         _update(balance0, balance1, x, y);
     }
