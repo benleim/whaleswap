@@ -87,7 +87,6 @@ library TWAMM {
         // executeVirtualOrders(self, reserves);
 
         OrderPool storage pool = self.pools[_token1][_token2];
-        require(pool.orderId != 0, "WHALESWAP: invalid token pair");
 
         // argument validation
         require(block.number < _endBlock, "WHALESWAP: start / end order");
