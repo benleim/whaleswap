@@ -4,46 +4,51 @@ pragma solidity >=0.8.0;
 import "./libraries/Math.sol";
 
 library TWAMM {
-    using Math for uint;
+    using Math for uint256;
 
     struct OrderPools {
-        uint orderExpireInterval;
-        uint lastExecutedBlock;
-
+        uint256 orderExpireInterval;
+        uint256 lastExecutedBlock;
         address tokenX;
         address tokenY;
-
-        mapping (address => mapping(address => OrderPool)) pools;
+        mapping(address => mapping(address => OrderPool)) pools;
     }
 
     struct OrderPool {
-        uint orderId;
-
+        // QUESTION: Would a better name be poolId or have i misunderstood what this is...?
+        uint256 orderId;
         address tokenX;
         address tokenY;
-
         uint256 saleRate;
         uint256 lastExecutionBlock;
-
-        mapping (uint256 => LongTermOrder) orders;
-        mapping (uint => uint) expirationByBlockInterval;
+        mapping(uint256 => LongTermOrder) orders;
+        mapping(uint256 => uint256) expirationByBlockInterval;
+        // QUESTION: Can we maybe please have a mapping of users/addresses to their orderIds?
     }
 
     struct LongTermOrder {
         uint256 id;
         address creator;
-
         uint256 beginBlock;
         uint256 finalBlock;
-        uint ratePerBlock;
-
+        uint256 ratePerBlock;
         bool active;
     }
 
-    event OrderCreated(uint id, address token1, address token2, address creator);
-    event OrderCancelled(uint id, address token1, address token2);
+    event OrderCreated(
+        uint256 id,
+        address token1,
+        address token2,
+        address creator
+    );
+    event OrderCancelled(uint256 id, address token1, address token2);
 
-    function initialize(OrderPools storage self, address _token0, address _token1, uint _orderExpireInterval) internal {
+    function initialize(
+        OrderPools storage self,
+        address _token0,
+        address _token1,
+        uint256 _orderExpireInterval
+    ) internal {
         self.orderExpireInterval = _orderExpireInterval;
         self.lastExecutedBlock = block.number;
         self.tokenX = _token0;
@@ -52,44 +57,66 @@ library TWAMM {
 
     // NOTE: have to pass reserves by reference for updating
     // NOTE: access modifier 'internal' inlines the code into calling contract
-    function executeVirtualOrders(OrderPools storage self, uint[2] storage reserves) internal {
+    function executeVirtualOrders(
+        OrderPools storage self,
+        uint256[2] storage reserves
+    ) internal {
         // calc number of passed intervals
-        uint prevBlockInterval = block.number - (block.number % self.orderExpireInterval);
-        uint numberIntervals = prevBlockInterval / self.lastExecutedBlock;
+        uint256 prevBlockInterval = block.number -
+            (block.number % self.orderExpireInterval);
+        uint256 numberIntervals = prevBlockInterval / self.lastExecutedBlock;
 
         // execute virtual reserve changes for every interval
         OrderPool storage pool1 = self.pools[self.tokenX][self.tokenY];
         OrderPool storage pool2 = self.pools[self.tokenY][self.tokenX];
 
+        // I think this is a nice, intuitive way of doing it
         for (uint16 i = 0; i < numberIntervals; i++) {
-            uint currBlockInterval = self.lastExecutedBlock + ((i+1) * self.orderExpireInterval);
+            uint256 currBlockInterval = self.lastExecutedBlock +
+                ((i + 1) * self.orderExpireInterval);
             // execute order
-            uint saleRate1 = pool1.saleRate;
-            uint saleRate2 = pool2.saleRate;
+            uint256 saleRate1 = pool1.saleRate;
+            uint256 saleRate2 = pool2.saleRate;
 
             // TODO: calculate reserves
-            (uint xOut, uint yOut) = computeVirtualBalances();
+            //(uint256 xOut, uint256 yOut) = computeVirtualBalances();
 
             // TODO: update reserves
 
             // update for expiring orders
-            pool1.saleRate -= pool1.expirationByBlockInterval[currBlockInterval];
-            pool2.saleRate -= pool2.expirationByBlockInterval[currBlockInterval];
+            // QUESTION: Set as inactive?
+            pool1.saleRate -= pool1.expirationByBlockInterval[
+                currBlockInterval
+            ];
+            pool2.saleRate -= pool2.expirationByBlockInterval[
+                currBlockInterval
+            ];
         }
     }
 
-    function createVirtualOrder(OrderPools storage self, address _token1, address _token2, uint256 _startBlock, uint256 _endBlock, uint _salesRate) internal {
+    function createVirtualOrder(
+        OrderPools storage self,
+        address _token1,
+        address _token2,
+        uint256 _startBlock,
+        uint256 _endBlock,
+        uint256 _salesRate
+    ) internal {
         OrderPool storage pool = self.pools[_token1][_token2];
         require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
 
         // argument validation
         require(_startBlock < _endBlock, "WHALESWAP: START / END ORDER");
         require(_salesRate != 0, "WHALESWAP: ZERO SALES RATE");
-        require(_endBlock % self.orderExpireInterval == 0, "WHALESWAP: INVALID ENDING BLOCK");
+        require(
+            _endBlock % self.orderExpireInterval == 0,
+            "WHALESWAP: INVALID ENDING BLOCK"
+        );
 
         // increment sales rate
+        // QUESTION: Don't we want to wait until the start block to increment?
         pool.saleRate += _salesRate;
-        
+
         // instantiate order
         pool.orders[pool.orderId] = LongTermOrder({
             id: pool.orderId,
@@ -101,6 +128,7 @@ library TWAMM {
         });
 
         // set expiration amount
+        // QUESTION: Don't understand :(
         pool.expirationByBlockInterval[_endBlock] += _salesRate;
 
         // increment counter
@@ -109,7 +137,12 @@ library TWAMM {
         emit OrderCreated(pool.orderId - 1, _token1, _token2, msg.sender);
     }
 
-    function cancelVirtualOrder(OrderPools storage self, uint _id, address _token1, address _token2) internal {
+    function cancelVirtualOrder(
+        OrderPools storage self,
+        uint256 _id,
+        address _token1,
+        address _token2
+    ) internal {
         // fetch proper OrderPool
         OrderPool storage pool = self.pools[_token1][_token2];
         require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
@@ -121,14 +154,20 @@ library TWAMM {
 
         // decrease current sales rate & old expiring block rate change
         pool.saleRate -= order.ratePerBlock;
-        pool.expirationByBlockInterval -= order.ratePerBlock;
+        // EDIT:
+        pool.expirationByBlockInterval[order.finalBlock] -= order.ratePerBlock;
 
         order.active = false;
 
         emit OrderCancelled(_id, _token1, _token2);
     }
 
-    function withdrawVirtualOrder(OrderPools storage self, address _token1, address _token2, uint _id) internal {
+    function withdrawVirtualOrder(
+        OrderPools storage self,
+        address _token1,
+        address _token2,
+        uint256 _id
+    ) internal {
         // fetch proper OrderPool
         OrderPool storage pool = self.pools[_token1][_token2];
         require(pool.orderId != 0, "WHALESWAP: invalid token pair");
@@ -137,23 +176,33 @@ library TWAMM {
         LongTermOrder storage order = pool.orders[_id];
         require(order.id != 0, "WHALESWAP: invalid order id");
         require(order.creator == msg.sender, "WHALESWAP: permission denied");
-        require(order.finalBlock >= block.timestamp, "WHALESWAP: order still executing");
+        require(
+            order.finalBlock >= block.timestamp,
+            "WHALESWAP: order still executing"
+        );
 
         // execute withdraw
-
     }
 
-    function computeVirtualBalances(uint xStart, uint yStart, uint xRate, uint yRate, uint numberBlocks) view internal returns (uint x, uint y) {
-        uint k = xStart * yStart;
-        uint xIn = xRate * numberBlocks;
-        uint yIn = yRate * numberBlocks;
-        uint xAmmEndLefthand = Math.sqrt((k * xIn) / yIn);
-        uint eExp = 2 * Math.sqrt(xIn * yIn / k);
-        
-        uint xAmmStartYIn = Math.sqrt(xStart * yIn);
-        uint yAmmStartXIn = Math.sqrt(yStart * xIn);
-        uint c = (xAmmStartYIn - yAmmStartXIn) / (xAmmStartYIn + yAmmStartXIn);
+    function computeVirtualBalances(
+        uint256 xStart,
+        uint256 yStart,
+        uint256 xRate,
+        uint256 yRate,
+        uint256 numberBlocks
+    ) internal view returns (uint256 x, uint256 y) {
+        uint256 k = xStart * yStart;
+        uint256 xIn = xRate * numberBlocks;
+        uint256 yIn = yRate * numberBlocks;
+        uint256 xAmmEndLefthand = Math.sqrt((k * xIn) / yIn);
+        uint256 eExp = 2 * Math.sqrt((xIn * yIn) / k);
 
-        uint xAmmEnd = xAmmEndLefthand * 
+        uint256 xAmmStartYIn = Math.sqrt(xStart * yIn);
+        uint256 yAmmStartXIn = Math.sqrt(yStart * xIn);
+        uint256 c = (xAmmStartYIn - yAmmStartXIn) /
+            (xAmmStartYIn + yAmmStartXIn);
+
+        // TODO: Work out how to do exponentials
+        //uint xAmmEnd = xAmmEndLefthand
     }
 }

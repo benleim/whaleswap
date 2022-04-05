@@ -7,20 +7,25 @@ import "./libraries/SafeMath.sol";
 import "./libraries/UQ112x112.sol";
 import "./TWAMM.sol";
 
+// TODO: Execute Virtual orders to update X and Y totals when adding/removing liquidity or making a swap
+
 contract Pair is ERC20 {
-    using SafeMath  for uint;
+    using SafeMath for uint256;
     using UQ112x112 for uint224;
 
     address public factory;
     address public token0;
     address public token1;
+    // CHANGE (Add):
+    string public token0Name;
+    string public token1Name;
 
     uint112 x;
     uint112 y;
-    uint k;
+    uint256 k;
 
-    uint public price0Cumulative;
-    uint public price1Cumulative;
+    uint256 public price0Cumulative;
+    uint256 public price1Cumulative;
     uint32 public lastBlockTimestamp;
 
     TWAMM.OrderPools orderPools;
@@ -32,21 +37,34 @@ contract Pair is ERC20 {
         TWAMM.initialize(orderPools, token0, token1, 50);
     }
 
-    function getAmounts() view external returns (uint112 amount0, uint112 amount1) {
+    function getAmounts()
+        external
+        view
+        returns (uint112 amount0, uint112 amount1)
+    {
         amount0 = x;
         amount1 = y;
     }
 
     // Utility function
-    function _update(uint balance0, uint balance1, uint112 _x, uint112 _y) private {
+    function _update(
+        uint256 balance0,
+        uint256 balance1,
+        uint112 _x,
+        uint112 _y
+    ) private {
         // Block timestamp calculations
         uint32 blockTimestamp = uint32(block.timestamp % 2**32);
         uint32 timeElapsed = blockTimestamp - lastBlockTimestamp;
 
         // Add to cumulative price
         if (timeElapsed > 0 && _x != 0 && _y != 0) {
-            price0Cumulative += uint(UQ112x112.encode(_y).uqdiv(_x)) * timeElapsed;
-            price1Cumulative += uint(UQ112x112.encode(_x).uqdiv(_y)) * timeElapsed;
+            price0Cumulative +=
+                uint256(UQ112x112.encode(_y).uqdiv(_x)) *
+                timeElapsed;
+            price1Cumulative +=
+                uint256(UQ112x112.encode(_x).uqdiv(_y)) *
+                timeElapsed;
         }
 
         // Update contract state variables
@@ -56,27 +74,33 @@ contract Pair is ERC20 {
     }
 
     // --- Liquidity functions ---
-    function mint(address to) external returns (uint liquidity) {
+    function mint(address to) external returns (uint256 liquidity) {
         // update reserves
-        uint balance0 = ERC20(token0).balanceOf(address(this));
-        uint balance1 = ERC20(token1).balanceOf(address(this));
-        uint amount0 = balance0.sub(x);
-        uint amount1 = balance1.sub(y);
+        uint256 balance0 = ERC20(token0).balanceOf(address(this));
+        uint256 balance1 = ERC20(token1).balanceOf(address(this));
+        uint256 amount0 = balance0.sub(x);
+        uint256 amount1 = balance1.sub(y);
 
         if (totalSupply == 0) {
             liquidity = Math.sqrt(amount0.mul(amount1));
         } else {
-            liquidity = Math.min(amount0.mul(totalSupply) / x, amount1.mul(totalSupply) / y);
+            liquidity = Math.min(
+                amount0.mul(totalSupply) / x,
+                amount1.mul(totalSupply) / y
+            );
         }
         _mint(to, liquidity); // ERC-20 function
         _update(balance0, balance1, x, y);
     }
 
-    function burn(address to) external returns (uint amount0, uint amount1) {
-        uint balance0 = ERC20(token0).balanceOf(address(this));
-        uint balance1 = ERC20(token1).balanceOf(address(this));
-        uint liquidity = balanceOf[address(this)];
-        
+    function burn(address to)
+        external
+        returns (uint256 amount0, uint256 amount1)
+    {
+        uint256 balance0 = ERC20(token0).balanceOf(address(this));
+        uint256 balance1 = ERC20(token1).balanceOf(address(this));
+        uint256 liquidity = balanceOf[address(this)];
+
         amount0 = liquidity.mul(balance0) / totalSupply;
         amount1 = liquidity.mul(balance1) / totalSupply;
 
@@ -93,9 +117,13 @@ contract Pair is ERC20 {
         _update(balance0, balance1, x, y);
     }
 
-    function swap(uint amount0Out, uint amount1Out, address to) external {
-        uint balance0;
-        uint balance1;
+    function swap(
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address to
+    ) external {
+        uint256 balance0;
+        uint256 balance1;
         if (amount0Out > 0) {
             ERC20(token0).transfer(to, amount0Out);
         }
@@ -105,12 +133,20 @@ contract Pair is ERC20 {
         balance0 = ERC20(token0).balanceOf(address(this));
         balance1 = ERC20(token1).balanceOf(address(this));
 
-        uint amount0In = balance0 > x - amount0Out ? balance0 - (x - amount0Out) : 0;
-        uint amount1In = balance1 > y - amount1Out ? balance1 - (y - amount1Out) : 0;
+        uint256 amount0In = balance0 > x - amount0Out
+            ? balance0 - (x - amount0Out)
+            : 0;
+        uint256 amount1In = balance1 > y - amount1Out
+            ? balance1 - (y - amount1Out)
+            : 0;
 
-        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
-        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
-        require(balance0Adjusted.mul(balance1Adjusted) >= uint(x).mul(y).mul(1000**2), 'Whaleswap: K');
+        uint256 balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
+        uint256 balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
+        require(
+            balance0Adjusted.mul(balance1Adjusted) >=
+                uint256(x).mul(y).mul(1000**2),
+            "Whaleswap: K"
+        );
 
         _update(balance0, balance1, x, y);
     }
@@ -120,23 +156,85 @@ contract Pair is ERC20 {
         @parameter: _endBlock - the block number when LTO ends
         @parameter: _salesRate - swap rate per single block
      */
-    function longTermSwapTokenXtoY(uint _endBlock, uint _totalXIn) external {
-        _longTermSwap(token0, token1, _endBlock, _salesRate);
+    // function longTermSwapTokenXtoY(uint256 _endBlock, uint256 _totalXIn)
+    //     external
+    // {
+    //     _longTermSwap(token0, token1, _endBlock, _salesRate);
+    // }
+
+    // function longTermSwapTokenYtoX(uint256 _endBlock, uint256 _totalYIn)
+    //     external
+    // {
+    //     _longTermSwap(token1, token0, _endBlock, _salesRate);
+    // }
+
+    // CHANGE (Suggestion):
+
+    function longTermSwapToken(
+        address tokenIn,
+        uint256 _numIntervals,
+        uint256 _totalIn
+    ) external {
+        require(
+            tokenIn == token0 || tokenIn == token1,
+            "Whaleswap: Invalid Input Token"
+        );
+
+        uint256 intervalSize = orderPools.orderExpireInterval;
+        uint256 startBlock = block.number +
+            (intervalSize - (block.number % intervalSize));
+        uint256 endBlock = startBlock + (_numIntervals * intervalSize);
+
+        uint256 salesRate = _totalIn / (intervalSize * _numIntervals);
+
+        if (tokenIn == token0) {
+            TWAMM.createVirtualOrder(
+                orderPools,
+                token0,
+                token1,
+                startBlock,
+                endBlock,
+                salesRate
+            );
+        } else {
+            TWAMM.createVirtualOrder(
+                orderPools,
+                token1,
+                token0,
+                startBlock,
+                endBlock,
+                salesRate
+            );
+        }
     }
 
-    function longTermSwapTokenYtoX(uint _endBlock, uint _totalYIn) external {
-        _longTermSwap(token1, token0, _endBlock, _salesRate);
-    }
-
-    function _longTermSwap(address _token0, address _token1, uint _endBlock, uint _totalIn) private {
-        require(_endBlock % orderPools.orderExpireInterval == 0, "WHALESWAP: Invalid ending block");
-        // find next elligible block in interval
-        uint nextStartBlock = block.number + (orderPools.orderExpireInterval - (block.number % orderPools.orderExpireInterval));
-        // calculate number of intervals between startBlock and endBlock
-        uint numberOfIntervals = _endBlock / nextStartBlock;
-        // numIntervals * salesRate is transfer amount
-        uint transferAmount = numberOfIntervals * (_salesRate * orderPools.orderExpireInterval);
-        // create LongTermSwap
-        TWAMM.createVirtualOrder(orderPools, _token0, _token1, nextStartBlock, _endBlock, _salesRate);
-    }
+    // function _longTermSwap(
+    //     address _token0,
+    //     address _token1,
+    //     uint256 _endBlock,
+    //     uint256 _totalIn
+    // ) private {
+    //     require(
+    //         _endBlock % orderPools.orderExpireInterval == 0,
+    //         "WHALESWAP: Invalid ending block"
+    //     );
+    //     // find next elligible block in interval
+    //     uint256 nextStartBlock = block.number +
+    //         (orderPools.orderExpireInterval -
+    //             (block.number % orderPools.orderExpireInterval));
+    //     // calculate number of intervals between startBlock and endBlock
+    //     uint256 numberOfIntervals = _endBlock / nextStartBlock;
+    //     // numIntervals * salesRate is transfer amount
+    //     uint256 transferAmount = numberOfIntervals *
+    //         (_salesRate * orderPools.orderExpireInterval);
+    //     // create LongTermSwap
+    //     TWAMM.createVirtualOrder(
+    //         orderPools,
+    //         _token0,
+    //         _token1,
+    //         nextStartBlock,
+    //         _endBlock,
+    //         _salesRate
+    //     );
+    // }
 }
