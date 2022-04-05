@@ -73,11 +73,24 @@ describe("Pair", function () {
     let balanceBefore = await token1.balanceOf(owner.address);
     let response = await pair.longTermSwapTokenXtoY(numberOfIntervals,ltoAmount);
     let balanceAfter = await token1.balanceOf(owner.address);
-    console.log(balanceBefore, balanceAfter);
 
     expect(balanceBefore - balanceAfter).to.equal(ltoAmount);
-    
     let longTermOrder = await pair.getLongTermSwapXtoY(0);
+    expect(longTermOrder).to.not.equal(undefined);
+  });
+
+  it("Calling longTermSwapTokenYtoX() should create long term swap", async function () {
+    let ltoAmount = 100000;
+    let numberOfIntervals = 100;
+
+    await token2.approve(pair.address, ltoAmount);
+
+    let balanceBefore = await token2.balanceOf(owner.address);
+    let response = await pair.longTermSwapTokenYtoX(numberOfIntervals,ltoAmount);
+    let balanceAfter = await token2.balanceOf(owner.address);
+
+    expect(balanceBefore - balanceAfter).to.equal(ltoAmount);
+    let longTermOrder = await pair.getLongTermSwapYtoX(0);
     expect(longTermOrder).to.not.equal(undefined);
   });
 

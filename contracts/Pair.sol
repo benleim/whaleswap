@@ -10,15 +10,14 @@ contract Pair is ERC20 {
     using UQ112x112 for uint224;
 
     address public factory;
-    address public token0;
-    address public token1;
-
-    uint112 x;
-    uint112 y;
-    uint k;
+    address public immutable token0;
+    address public immutable token1;
 
     uint public price0Cumulative;
     uint public price1Cumulative;
+
+    uint112 x;
+    uint112 y;
     uint32 public lastBlockTimestamp;
 
     TWAMM.OrderPools orderPools;
@@ -160,7 +159,21 @@ contract Pair is ERC20 {
     }
 
     /// @notice fetch orders by creator
-    function getCreatedOrders() external view returns (TWAMM.LongTermOrder[] memory order) {
-        
+    function getCreatedOrders() external view returns (TWAMM.LongTermOrder[] memory ordersXtoY, TWAMM.LongTermOrder[] memory ordersYtoX) {
+        ordersXtoY = _getCreatedOrderPool(orderPools.pools[token0][token1]);
+        ordersYtoX = _getCreatedOrderPool(orderPools.pools[token1][token0]);
+    }
+
+    function _getCreatedOrderPool(TWAMM.OrderPool storage pool) private view returns (TWAMM.LongTermOrder[] memory orders) {
+        uint256 count = 0;
+        for (uint256 i = 0; i < pool.orderId; i++) {
+            if (pool.orders[i].creator == msg.sender) count++;
+        }
+
+        uint256 pos = 0;
+        orders = new TWAMM.LongTermOrder[](count);
+        for (uint256 j = 0; j < pool.orderId; j++) {
+            if (pool.orders[j].creator == msg.sender) orders[pos++] = pool.orders[j];
+        }
     }
 }
