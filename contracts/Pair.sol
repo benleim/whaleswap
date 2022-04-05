@@ -35,6 +35,10 @@ contract Pair is ERC20 {
         amount1 = y;
     }
 
+    function getLongTermOrderInterval() view external returns (uint blockInterval) {
+        blockInterval = orderPools.orderExpireInterval;
+    }
+
     // Utility function
     function _update(uint balance0, uint balance1, uint112 _x, uint112 _y) private {
         // Block timestamp calculations
@@ -118,23 +122,29 @@ contract Pair is ERC20 {
         @parameter: _endBlock - the block number when LTO ends
         @parameter: _salesRate - swap rate per single block
      */
-    function longTermSwapTokenXtoY(uint _endBlock, uint _totalXIn) external {
-        _longTermSwap(token0, token1, _endBlock, _salesRate);
+    function longTermSwapTokenXtoY(uint _intervalNumber, uint _totalXIn) external {
+        _longTermSwap(token0, token1, _intervalNumber, _totalXIn, 0);
     }
 
-    function longTermSwapTokenYtoX(uint _endBlock, uint _totalYIn) external {
-        _longTermSwap(token1, token0, _endBlock, _salesRate);
+    function longTermSwapTokenYtoX(uint _intervalNumber, uint _totalYIn) external {
+        _longTermSwap(token1, token0, _intervalNumber, 0, _totalYIn);
     }
 
-    function _longTermSwap(address _token0, address _token1, uint _endBlock, uint _totalIn) private {
-        require(_endBlock % orderPools.orderExpireInterval == 0, "WHALESWAP: Invalid ending block");
-        // find next elligible block in interval
-        uint nextStartBlock = block.number + (orderPools.orderExpireInterval - (block.number % orderPools.orderExpireInterval));
-        // calculate number of intervals between startBlock and endBlock
-        uint numberOfIntervals = _endBlock / nextStartBlock;
-        // numIntervals * salesRate is transfer amount
-        uint transferAmount = numberOfIntervals * (_salesRate * orderPools.orderExpireInterval);
+    function _longTermSwap(address _token0, address _token1, uint _intervalNumber, uint _totalXIn, uint _totalYIn) private {
+        // interval calculations
+        uint nextIntervalBlock = block.number + (orderPools.orderExpireInterval - (block.number % orderPools.orderExpireInterval));
+        uint endIntervalBlock = nextIntervalBlock + (_intervalNumber * orderPools.orderExpireInterval);
+
+        // execute erc20 transfers
+        // NOTE: msg.sender might not be proper here...
+        if (_totalXIn == 0) ERC20(token0).transferFrom(msg.sender,address(this),_totalXIn);
+        else if (_totalYIn == 0) ERC20(token1).transferFrom(msg.sender,address(this),_totalYIn);
+
+        // calculate block sales rate
+        // (works bc either _totalXIn or _totalYIn will always = 0)
+        uint salesRate = (_totalXIn + _totalYIn) / (endIntervalBlock - block.number);
+
         // create LongTermSwap
-        TWAMM.createVirtualOrder(orderPools, _token0, _token1, nextStartBlock, _endBlock, _salesRate);
+        TWAMM.createVirtualOrder(orderPools, _token0, _token1, block.number, endIntervalBlock, salesRate);
     }
 }

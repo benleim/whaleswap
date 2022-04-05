@@ -1,8 +1,9 @@
 pragma solidity >=0.8.0;
 
-// NOTE: Need to change s.t. executeVirtualOrders work for all previous blocks (not just intervals)
 import "./libraries/Math.sol";
 
+/// @title A library for TWAMM functionality (https://www.paradigm.xyz/2021/07/twamm)
+/// @author Ben Leimberger
 library TWAMM {
     using Math for uint;
 
@@ -109,18 +110,20 @@ library TWAMM {
         emit OrderCreated(pool.orderId - 1, _token1, _token2, msg.sender);
     }
 
+    /// @notice cancels an existing, active virtual order by identifier
     function cancelVirtualOrder(OrderPools storage self, uint _id, address _token1, address _token2) internal {
         // calculate reserve changes
         // calculateVirtualReserves()
 
         // fetch proper OrderPool
         OrderPool storage pool = self.pools[_token1][_token2];
-        require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
+        require(pool.orderId != 0, "WHALESWAP: invalid token pair");
 
         // fetch LongTermOrder by given id
         LongTermOrder storage order = pool.orders[_id];
-        require(order.id != 0, "WHALESWAP: INVALID ORDER");
-        require(order.creator == msg.sender, "WHALESWAP: PERMISSION DENIED");
+        require(order.id != 0, "WHALESWAP: invalid order");
+        require(order.finalBlock > block.number, "WHALESWAP: order already finished");
+        require(order.creator == msg.sender, "WHALESWAP: permission denied");
 
         // decrease current sales rate & old expiring block rate change
         pool.saleRate -= order.ratePerBlock;
@@ -131,6 +134,7 @@ library TWAMM {
         emit OrderCancelled(_id, _token1, _token2);
     }
 
+    /// @notice withdraw from a completed virtual order
     function withdrawVirtualOrder(OrderPools storage self, address _token1, address _token2, uint _id) internal {
         // fetch proper OrderPool
         OrderPool storage pool = self.pools[_token1][_token2];
@@ -140,10 +144,10 @@ library TWAMM {
         LongTermOrder storage order = pool.orders[_id];
         require(order.id != 0, "WHALESWAP: invalid order id");
         require(order.creator == msg.sender, "WHALESWAP: permission denied");
-        require(order.finalBlock >= block.timestamp, "WHALESWAP: order still executing");
+        require(order.finalBlock < block.timestamp, "WHALESWAP: order still executing");
 
         // execute withdraw
-
+        
     }
 
     function computeVirtualBalances(uint xStart, uint yStart, uint xRate, uint yRate, uint numberBlocks) view internal returns (uint x, uint y) {
