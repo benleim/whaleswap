@@ -150,12 +150,12 @@ contract Pair is ERC20 {
     }
 
     /// @notice retrieve long term swap by id
-    function getLongTermSwapXtoY(uint _id) external returns (TWAMM.LongTermOrder memory order) {
+    function getLongTermSwapXtoY(uint _id) external view returns (TWAMM.LongTermOrder memory order) {
         order = orderPools.pools[token0][token1].orders[_id];
     }
 
     /// @notice retrieve long term swap by id
-    function getLongTermSwapYtoX(uint _id) external returns (TWAMM.LongTermOrder memory order) {
+    function getLongTermSwapYtoX(uint _id) external view returns (TWAMM.LongTermOrder memory order) {
         order = orderPools.pools[token1][token0].orders[_id];
     }
 }
