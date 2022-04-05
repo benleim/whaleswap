@@ -136,15 +136,15 @@ contract Pair is ERC20 {
         uint endIntervalBlock = nextIntervalBlock + (_intervalNumber * orderPools.orderExpireInterval);
 
         // execute erc20 transfers
-        // NOTE: msg.sender might not be proper here...
-        if (_totalXIn == 0) ERC20(token0).transferFrom(msg.sender,address(this),_totalXIn);
-        else if (_totalYIn == 0) ERC20(token1).transferFrom(msg.sender,address(this),_totalYIn);
+        // NOTE: msg.sender might not be correct here...
+        if (_totalXIn == 0) ERC20(token1).transferFrom(msg.sender,address(this),_totalYIn);
+        else if (_totalYIn == 0) ERC20(token0).transferFrom(msg.sender,address(this),_totalXIn);
 
         // calculate block sales rate
         // (works bc either _totalXIn or _totalYIn will always = 0)
-        uint salesRate = (_totalXIn + _totalYIn) / (endIntervalBlock - block.number);
+        uint blockSalesRate = (_totalXIn + _totalYIn) / (endIntervalBlock - block.number);
 
         // create LongTermSwap
-        TWAMM.createVirtualOrder(orderPools, _token0, _token1, block.number, endIntervalBlock, salesRate);
+        TWAMM.createVirtualOrder(orderPools, _token0, _token1, endIntervalBlock, blockSalesRate);
     }
 }

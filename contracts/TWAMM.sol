@@ -79,23 +79,25 @@ library TWAMM {
         }
     }
 
-    function createVirtualOrder(OrderPools storage self, address _token1, address _token2, uint256 _startBlock, uint256 _endBlock, uint _salesRate) internal {
+    /// @notice method for creating a time-weighted average virtual order over time
+    /// @dev order begins as soon as function is called
+    function createVirtualOrder(OrderPools storage self, address _token1, address _token2, uint256 _endBlock, uint _salesRate) internal {
         OrderPool storage pool = self.pools[_token1][_token2];
-        require(pool.orderId != 0, "WHALESWAP: INVALID TOKEN PAIR");
+        require(pool.orderId != 0, "WHALESWAP: invalid token pair");
 
         // argument validation
-        require(_startBlock < _endBlock, "WHALESWAP: START / END ORDER");
-        require(_salesRate != 0, "WHALESWAP: ZERO SALES RATE");
-        require(_endBlock % self.orderExpireInterval == 0, "WHALESWAP: INVALID ENDING BLOCK");
+        require(block.number < _endBlock, "WHALESWAP: start / end order");
+        require(_salesRate != 0, "WHALESWAP: zero sales rate");
+        require(_endBlock % self.orderExpireInterval == 0, "WHALESWAP: invalid ending block");
 
-        // increment sales rate
+        // increment sales rate immediately
         pool.saleRate += _salesRate;
         
         // instantiate order
         pool.orders[pool.orderId] = LongTermOrder({
             id: pool.orderId,
             creator: msg.sender,
-            beginBlock: _startBlock,
+            beginBlock: block.number,
             finalBlock: _endBlock,
             ratePerBlock: _salesRate,
             active: false
@@ -147,7 +149,7 @@ library TWAMM {
         require(order.finalBlock < block.timestamp, "WHALESWAP: order still executing");
 
         // execute withdraw
-        
+
     }
 
     function computeVirtualBalances(uint xStart, uint yStart, uint xRate, uint yRate, uint numberBlocks) view internal returns (uint x, uint y) {
