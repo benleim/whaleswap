@@ -158,4 +158,9 @@ contract Pair is ERC20 {
     function getLongTermSwapYtoX(uint _id) external view returns (TWAMM.LongTermOrder memory order) {
         order = orderPools.pools[token1][token0].orders[_id];
     }
+
+    /// @notice fetch orders by creator
+    function getCreatedOrders() external view returns (TWAMM.LongTermOrder[] memory order) {
+        
+    }
 }

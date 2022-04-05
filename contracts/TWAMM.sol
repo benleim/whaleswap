@@ -136,8 +136,11 @@ library TWAMM {
 
         // decrease current sales rate & old expiring block rate change
         pool.saleRate -= order.ratePerBlock;
+
+        // remove expiration penalty on expiration interval
         pool.expirationByBlockInterval[order.finalBlock] -= order.ratePerBlock;
 
+        // mark order inactive
         order.active = false;
 
         emit OrderCancelled(_id, _token1, _token2);

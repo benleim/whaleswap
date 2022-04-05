@@ -1,4 +1,9 @@
 node_modules
-build
-app/src/contracts
-.DS_Store
+.env
+coverage
+coverage.json
+typechain
+
+#Hardhat files
+cache
+artifacts
