@@ -56,42 +56,40 @@ contract Pair is ERC20 {
         lastBlockTimestamp = blockTimestamp;
     }
 
-    // --- Liquidity functions ---
-    function mint(address to) external returns (uint liquidity) {
-        // update reserves
-        uint balance0 = ERC20(token0).balanceOf(address(this));
-        uint balance1 = ERC20(token1).balanceOf(address(this));
-        uint amount0 = balance0 - x;
-        uint amount1 = balance1 - y;
+    /// @notice method for providing liquidity
+    function mint(address to, uint _amountInX, uint _amountInY) external returns (uint liquidity) {
+        // handle transfers
+        ERC20(token0).transferFrom(msg.sender, address(this), _amountInX);
+        ERC20(token1).transferFrom(msg.sender, address(this), _amountInY);
 
+        // calculate liquidity
         if (totalSupply == 0) {
-            liquidity = Math.sqrt(amount0 * amount1);
+            liquidity = Math.sqrt(_amountInX * _amountInY);
         } else {
-            liquidity = Math.min((amount0 * totalSupply) / x, (amount1 * totalSupply) / y);
+            liquidity = Math.min((_amountInX * totalSupply) / x, (_amountInY * totalSupply) / y);
         }
         _mint(to, liquidity); // ERC-20 function
-        _update(balance0, balance1, x, y);
+        _update(x + _amountInX, y + _amountInY, x, y);
     }
 
+    /// @notice method for burning liquidity
     function burn(address to) external returns (uint amount0, uint amount1) {
-        uint balance0 = ERC20(token0).balanceOf(address(this));
-        uint balance1 = ERC20(token1).balanceOf(address(this));
         uint liquidity = balanceOf[address(this)];
         
-        amount0 = liquidity * (balance0) / totalSupply;
-        amount1 = liquidity * (balance1) / totalSupply;
+        // calculate token amounts
+        amount0 = liquidity * x / totalSupply;
+        amount1 = liquidity * y / totalSupply;
 
-        _burn(address(this), liquidity); // burn liquidity tokens
+        // Update balances
+        x -= uint112(amount0);
+        y -= uint112(amount1);
+
+        // ERC-20 burn liquidity tokens
+        _burn(address(this), liquidity);
 
         // Transfer tokens back to LP
         ERC20(token0).transfer(to, amount0);
         ERC20(token1).transfer(to, amount1);
-
-        // Update balances
-        balance0 = ERC20(token0).balanceOf(address(this));
-        balance1 = ERC20(token1).balanceOf(address(this));
-
-        _update(balance0, balance1, x, y);
     }
 
     function swap(uint amount0Out, uint amount1Out, address to) external {
@@ -159,7 +157,7 @@ contract Pair is ERC20 {
     }
 
     /// @notice fetch orders by creator
-    function getCreatedOrders() external view returns (TWAMM.LongTermOrder[] memory ordersXtoY, TWAMM.LongTermOrder[] memory ordersYtoX) {
+    function getCreatedLongTermOrders() external view returns (TWAMM.LongTermOrder[] memory ordersXtoY, TWAMM.LongTermOrder[] memory ordersYtoX) {
         ordersXtoY = _getCreatedOrderPool(orderPools.pools[token0][token1]);
         ordersYtoX = _getCreatedOrderPool(orderPools.pools[token1][token0]);
     }

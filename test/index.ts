@@ -94,7 +94,30 @@ describe("Pair", function () {
     expect(longTermOrder).to.not.equal(undefined);
   });
 
-  it("Calling longTermSwapTokenYtoX() should create long term swap", async function () {
-    
+  it("Calling getCreatedOrders()", async function () {
+    // should return nothing before creating long term orders
+    let blankOrders = await pair.getCreatedLongTermOrders();
+    expect(blankOrders.ordersXtoY.length).to.equal(0);
+    expect(blankOrders.ordersYtoX.length).to.equal(0);
+
+    // create long term order x -> y
+    let numIntervals = 10, ltoAmount = 100000;
+    await token1.approve(pair.address, ltoAmount);
+    await pair.longTermSwapTokenXtoY(numIntervals, ltoAmount);
+
+    // confirm fetch for 1 total
+    let oneOrder = await pair.getCreatedLongTermOrders();
+    expect(oneOrder.ordersXtoY.length).to.equal(1);
+    expect(oneOrder.ordersYtoX.length).to.equal(0);
+
+    // create long term order y -> x
+    let numIntervals2 = 15, ltoAmount2 = 200000;
+    await token2.approve(pair.address, ltoAmount2);
+    await pair.longTermSwapTokenYtoX(numIntervals2, ltoAmount2);
+
+    // confirm fetch for 2 total
+    let twoOrders = await pair.getCreatedLongTermOrders();
+    expect(twoOrders.ordersXtoY.length).to.equal(1);
+    expect(twoOrders.ordersYtoX.length).to.equal(1);
   });
 });
