@@ -23,6 +23,13 @@ contract Pair is ERC20 {
     /// @dev twamm state
     TWAMM.OrderPools orderPools;
 
+    event Swap();
+    event MintLiquidity();
+    event BurnLiquidity();
+    event CreateLongTermOrder();
+    event CancelLongTermOrder();
+    event WithdrawLongTermOrder();
+
     constructor(address _token0, address _token1, uint _twammIntervalSize) ERC20("lWhale", "lWHL", 18) {
         factory = msg.sender;
         token0 = _token0;
@@ -71,6 +78,8 @@ contract Pair is ERC20 {
         }
         _mint(to, liquidity); // ERC-20 function
         _update(x + _amountInX, y + _amountInY, x, y);
+
+        emit MintLiquidity();
     }
 
     /// @notice method for burning liquidity
@@ -91,6 +100,8 @@ contract Pair is ERC20 {
         // Transfer tokens back to LP
         ERC20(token0).transfer(to, amount0);
         ERC20(token1).transfer(to, amount1);
+
+        emit BurnLiquidity();
     }
 
     function swap(uint amount0Out, uint amount1Out, address to) external {
@@ -113,6 +124,8 @@ contract Pair is ERC20 {
         require(balance0Adjusted * balance1Adjusted >= uint(x) * y * (1000**2), "Whaleswap: K");
 
         _update(balance0, balance1, x, y);
+
+        emit Swap();
     }
 
     /// @notice execute long term swap buying Y & selling X
@@ -145,6 +158,8 @@ contract Pair is ERC20 {
 
         // create LongTermSwap
         TWAMM.createVirtualOrder(orderPools, _token0, _token1, endIntervalBlock, blockSalesRate);
+        
+        emit CreateLongTermOrder();
     }
 
     /// @notice retrieve long term swap by id
@@ -174,5 +189,15 @@ contract Pair is ERC20 {
         for (uint256 j = 0; j < pool.orderId; j++) {
             if (pool.orders[j].creator == msg.sender) orders[pos++] = pool.orders[j];
         }
+    }
+
+    function cancelLongTermOrder(uint _id, address _token0, address _token1) external {
+        TWAMM.cancelVirtualOrder(orderPools, _id, _token0, _token1);
+        emit CancelLongTermOrder();
+    }
+
+    function withdrawLongTermOrder(uint _id, address _token0, address _token1) external {
+        TWAMM.cancelVirtualOrder(orderPools, _id, _token0, _token1);
+        emit WithdrawLongTermOrder();
     }
 }
