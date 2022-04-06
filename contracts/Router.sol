@@ -53,11 +53,8 @@ contract Router {
         (uint amount0, uint amount1) = _optimalLiquidity(token0, token1, desiredAmount0, desiredAmount1, minAmount0, minAmount1);
         // Fetch pair address
         address pair = Factory(factory).getPair(token0, token1);
-        // transfer token0 & token1 to pair
-        ERC20(token0).transferFrom(msg.sender, pair, amount0);
-        ERC20(token1).transferFrom(msg.sender, pair, amount1);
         // call pair.mint()
-        liquidity = Pair(pair).mint(to);
+        liquidity = Pair(pair).mint(to,amount0,amount1);
     }
 
     function burnLiquidity(

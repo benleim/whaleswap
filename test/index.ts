@@ -7,6 +7,7 @@ import { Factory, Pair } from "../typechain";
 
 describe("Factory", function () {
   let factory: Factory;
+  let pair: Pair;
   let token1: Contract;
   let token2: Contract;
   let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress, addr3: SignerWithAddress;
@@ -23,18 +24,23 @@ describe("Factory", function () {
     token1 = await Token1.deploy();
     const Token2 = await ethers.getContractFactory("TestToken1");
     token2 = await Token2.deploy();
+
+    await factory.createPair(token1.address, token2.address, 50);
+    const pairAddress = await factory.getPair(token1.address, token2.address);
+    const PairContract = await ethers.getContractFactory('Pair');
+    pair = await PairContract.attach(pairAddress);
   })
 
   it("Calling createPair() with same token", async function () {
-    
+    const revertReason = 'WHALESWAP: Tokens cannot be the same';
+    await expect(factory.createPair(token1.address, token1.address, 100))
+      .to.be.revertedWith(revertReason);
   });
 
   it("Calling createPair() for existing pair", async function () {
-    
-  });
-
-  it("Calling createPair() should succeed", async function () {
-    
+    const revertReason = 'WHALESWAP: Pair already exists';
+    await expect(factory.createPair(token1.address, token2.address, 100))
+      .to.be.revertedWith(revertReason);
   });
 });
 
@@ -120,4 +126,8 @@ describe("Pair", function () {
     expect(twoOrders.ordersXtoY.length).to.equal(1);
     expect(twoOrders.ordersYtoX.length).to.equal(1);
   });
+
+  it("OrderPool blockrate should change on expiration", async function() {
+
+  })
 });

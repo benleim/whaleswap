@@ -20,6 +20,7 @@ contract Pair is ERC20 {
     uint112 y;
     uint32 public lastBlockTimestamp;
 
+    /// @dev twamm state
     TWAMM.OrderPools orderPools;
 
     constructor(address _token0, address _token1, uint _twammIntervalSize) ERC20("lWhale", "lWHL", 18) {
