@@ -127,7 +127,35 @@ describe("Pair", function () {
     expect(twoOrders.ordersYtoX.length).to.equal(1);
   });
 
-  it("OrderPool blockrate should change on expiration", async function() {
+  it("Mint & burn liquidity tokens - single LP", async function() {
+    await token1.approve(pair.address, 1000);
+    await token2.approve(pair.address, 1000);
 
-  })
+    let balanceBefore0 =await token1.balanceOf(owner.address);
+    let balanceBefore1 = await token2.balanceOf(owner.address);
+
+    let mintLiquidity = await pair.mint(owner.address, 1000, 1000);
+    let redeemLiquidity = await pair.burn(owner.address);
+
+    let balanceAfter0 = await token1.balanceOf(owner.address);
+    let balanceAfter1 = await token2.balanceOf(owner.address);
+
+    expect(balanceAfter0).to.equal(balanceBefore0);
+    expect(balanceAfter1).to.equal(balanceBefore1);
+  });
+
+  it("OrderPool executeLongTermOrders()", async function() {
+    await pair.executeLongTermOrders();
+
+    const blocks = 150;
+    for (let i = 0; i < blocks; i++) {
+      await ethers.provider.send('evm_mine',[]);
+    }
+ 
+    await pair.executeLongTermOrders();
+  });
+
+  it("OrderPool blockrate should change on expiration", async function() {
+    
+  });
 });

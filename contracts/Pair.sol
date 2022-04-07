@@ -6,6 +6,8 @@ import "./libraries/Math.sol";
 import "./libraries/UQ112x112.sol";
 import "./TWAMM.sol";
 
+import "hardhat/console.sol";
+
 contract Pair is ERC20 {
     using UQ112x112 for uint224;
 
@@ -16,9 +18,10 @@ contract Pair is ERC20 {
     uint public price0Cumulative;
     uint public price1Cumulative;
 
-    uint112 x;
-    uint112 y;
+    uint112 private x;
+    uint112 private y;
     uint32 public lastBlockTimestamp;
+    uint[2] private reserves;
 
     /// @dev twamm state
     TWAMM.OrderPools orderPools;
@@ -65,7 +68,7 @@ contract Pair is ERC20 {
     }
 
     /// @notice method for providing liquidity
-    function mint(address to, uint _amountInX, uint _amountInY) external returns (uint liquidity) {
+    function mint(address _to, uint _amountInX, uint _amountInY) external returns (uint liquidity) {
         // handle transfers
         ERC20(token0).transferFrom(msg.sender, address(this), _amountInX);
         ERC20(token1).transferFrom(msg.sender, address(this), _amountInY);
@@ -76,7 +79,7 @@ contract Pair is ERC20 {
         } else {
             liquidity = Math.min((_amountInX * totalSupply) / x, (_amountInY * totalSupply) / y);
         }
-        _mint(to, liquidity); // ERC-20 function
+        _mint(_to, liquidity); // ERC-20 function
         _update(x + _amountInX, y + _amountInY, x, y);
 
         emit MintLiquidity();
@@ -84,18 +87,18 @@ contract Pair is ERC20 {
 
     /// @notice method for burning liquidity
     function burn(address to) external returns (uint amount0, uint amount1) {
-        uint liquidity = balanceOf[address(this)];
+        uint liquidity = balanceOf[msg.sender];
         
         // calculate token amounts
-        amount0 = liquidity * x / totalSupply;
-        amount1 = liquidity * y / totalSupply;
+        amount0 = (liquidity * x) / totalSupply;
+        amount1 = (liquidity * y) / totalSupply;
 
         // Update balances
         x -= uint112(amount0);
         y -= uint112(amount1);
 
         // ERC-20 burn liquidity tokens
-        _burn(address(this), liquidity);
+        _burn(msg.sender, liquidity);
 
         // Transfer tokens back to LP
         ERC20(token0).transfer(to, amount0);
@@ -143,12 +146,12 @@ contract Pair is ERC20 {
     }
 
     function _longTermSwap(address _token0, address _token1, uint _intervalNumber, uint _totalXIn, uint _totalYIn) private {
+        require(_totalXIn == 0 || _totalYIn == 0, "WHALESWAP: invalid parameters");
         // interval calculations
         uint nextIntervalBlock = block.number + (orderPools.orderExpireInterval - (block.number % orderPools.orderExpireInterval));
         uint endIntervalBlock = nextIntervalBlock + (_intervalNumber * orderPools.orderExpireInterval);
 
         // execute erc20 transfers
-        // NOTE: msg.sender might not be correct here...
         if (_totalXIn == 0) ERC20(token1).transferFrom(msg.sender,address(this),_totalYIn);
         else if (_totalYIn == 0) ERC20(token0).transferFrom(msg.sender,address(this),_totalXIn);
 
@@ -199,5 +202,9 @@ contract Pair is ERC20 {
     function withdrawLongTermOrder(uint _id, address _token0, address _token1) external {
         TWAMM.cancelVirtualOrder(orderPools, _id, _token0, _token1);
         emit WithdrawLongTermOrder();
+    }
+
+    function executeLongTermOrders() external {
+        TWAMM.executeVirtualOrders(orderPools, reserves);
     }
 }

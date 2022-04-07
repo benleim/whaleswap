@@ -1,6 +1,7 @@
 pragma solidity >=0.8.0;
 
 import "./libraries/Math.sol";
+import "hardhat/console.sol";
 
 /// @title A library for TWAMM functionality (https://www.paradigm.xyz/2021/07/twamm)
 /// @author Ben Leimberger
@@ -41,12 +42,12 @@ library TWAMM {
         bool active;
     }
 
-    event OrderCreated(uint id, address token1, address token2, address creator);
-    event OrderCancelled(uint id, address token1, address token2);
+    event LongTermOrderCreated(uint id, address token1, address token2, address creator);
+    event LongTermOrderCancelled(uint id, address token1, address token2);
 
     function initialize(OrderPools storage self, address _token0, address _token1, uint _orderExpireInterval) internal {
         self.orderExpireInterval = _orderExpireInterval;
-        self.lastExecutedBlock = block.number;
+        self.lastExecutedBlock = block.number - 1;
         self.tokenX = _token0;
         self.tokenY = _token1;
     }
@@ -54,17 +55,29 @@ library TWAMM {
     // NOTE: have to pass reserves by reference for updating
     // NOTE: access modifier 'internal' inlines the code into calling contract
     function executeVirtualOrders(OrderPools storage self, uint[2] storage reserves) internal {
+        console.log("Current block: %s, Last Executed Block: %s", block.number, self.lastExecutedBlock);
         // calc number of passed intervals
-        uint prevBlockInterval = block.number - (block.number % self.orderExpireInterval);
-        uint numberIntervals = prevBlockInterval / self.lastExecutedBlock;
+        uint expireInterval = self.orderExpireInterval;
 
         // execute virtual reserve changes for every interval
         OrderPool storage pool1 = self.pools[self.tokenX][self.tokenY];
         OrderPool storage pool2 = self.pools[self.tokenY][self.tokenX];
 
-        // TODO: Improve the logic here - very gas inefficient
-        for (uint16 i = 0; i < numberIntervals; i++) {
-            uint currBlockInterval = self.lastExecutedBlock + ((i+1) * self.orderExpireInterval);
+        // Iterate over intervals in bounds
+        uint lastBlock = self.lastExecutedBlock + 1;
+        while (lastBlock <= block.number) {
+            console.log("Lower-Bound Block Number=%s", lastBlock);
+            // check if lower bound is interval
+            if (lastBlock % expireInterval == 0) {
+                pool1.saleRate -= pool1.expirationByBlockInterval[lastBlock];
+                pool2.saleRate -= pool2.expirationByBlockInterval[lastBlock];
+            }
+
+            uint beforeNextInterval = lastBlock + (expireInterval - (lastBlock % expireInterval)) - 1;
+            uint nextBlock = (beforeNextInterval < block.number) ? beforeNextInterval : block.number;
+            console.log("Upper-Bound Block Number=%s", nextBlock);
+            console.log("=============");
+
             // execute order
             uint saleRate1 = pool1.saleRate;
             uint saleRate2 = pool2.saleRate;
@@ -74,10 +87,11 @@ library TWAMM {
 
             // TODO: update reserves
 
-            // update for expiring orders
-            pool1.saleRate -= pool1.expirationByBlockInterval[currBlockInterval];
-            pool2.saleRate -= pool2.expirationByBlockInterval[currBlockInterval];
+            lastBlock = nextBlock + 1;
         }
+
+        // update last executed block
+        self.lastExecutedBlock = block.number;
     }
 
     /// @notice method for creating a time-weighted average virtual order over time
@@ -112,7 +126,7 @@ library TWAMM {
         // increment counter
         pool.orderId++;
 
-        emit OrderCreated(pool.orderId - 1, _token1, _token2, msg.sender);
+        emit LongTermOrderCreated(pool.orderId - 1, _token1, _token2, msg.sender);
     }
 
     /// @notice cancels an existing, active virtual order by identifier
@@ -142,7 +156,7 @@ library TWAMM {
         // mark order inactive
         order.active = false;
 
-        emit OrderCancelled(_id, _token1, _token2);
+        emit LongTermOrderCancelled(_id, _token1, _token2);
     }
 
     /// @notice withdraw from a completed virtual order
