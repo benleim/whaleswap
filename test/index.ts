@@ -142,10 +142,20 @@ describe("Pair", function () {
 
     expect(balanceAfter0).to.equal(balanceBefore0);
     expect(balanceAfter1).to.equal(balanceBefore1);
+  });
 
+  it("OrderPool executeLongTermOrders()", async function() {
+    await pair.executeLongTermOrders();
+
+    const blocks = 150;
+    for (let i = 0; i < blocks; i++) {
+      await ethers.provider.send('evm_mine',[]);
+    }
+ 
+    await pair.executeLongTermOrders();
   });
 
   it("OrderPool blockrate should change on expiration", async function() {
-
+    
   });
 });

@@ -21,6 +21,7 @@ contract Pair is ERC20 {
     uint112 private x;
     uint112 private y;
     uint32 public lastBlockTimestamp;
+    uint[2] private reserves;
 
     /// @dev twamm state
     TWAMM.OrderPools orderPools;
@@ -201,5 +202,9 @@ contract Pair is ERC20 {
     function withdrawLongTermOrder(uint _id, address _token0, address _token1) external {
         TWAMM.cancelVirtualOrder(orderPools, _id, _token0, _token1);
         emit WithdrawLongTermOrder();
+    }
+
+    function executeLongTermOrders() external {
+        TWAMM.executeVirtualOrders(orderPools, reserves);
     }
 }
